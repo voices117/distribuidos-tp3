@@ -14,7 +14,7 @@ x-base-worker: &base-worker
     build:
         context: .
         dockerfile: ./Dockerfile
-    command: "new_main.py"
+    command: "main.py"
     depends_on:
         - rabbitmq
     volumes:
@@ -52,22 +52,9 @@ def create_docker_compose():
     return content
 
 
-def list_replicas():
-    return ' '.join(
-        f'--scale {worker_type}={replicas}'
-        for worker_type, replicas in WORKERS.items()
-    )
-
-
 if __name__ == '__main__':
     import sys
 
-    assert len(sys.argv) == 2, 'Usage  compose_builder.py [compose|replicas]'
-    
-    command = sys.argv[1]
-    if command == 'compose':
-        print(create_docker_compose())
-    elif command == 'replicas':
-        print(list_replicas())
-    else:
-        print(f'Invalid command {command}. Expected "compose" or "replicas"')
+    assert len(sys.argv) == 1, 'Usage  compose_builder.py'
+
+    print(create_docker_compose())

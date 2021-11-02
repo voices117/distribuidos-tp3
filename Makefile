@@ -11,6 +11,7 @@ client:
 	docker run --rm -e "LINES_PER_CHUNK=${LINES_PER_CHUNK}" \
 	                -e "NUM_CHUNKS=${NUM_CHUNKS}" \
 	                -e "RABBITMQ_ADDRESS=localhost" \
+					-v ./data:/app/data \
 					tp2-client client.py
 
 .PHONY: client image run

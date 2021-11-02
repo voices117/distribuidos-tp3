@@ -10,8 +10,8 @@ WORKERS = {
     'client_questions': 1,  # not an actual worker, but helps to avoid special cases
 
     # input
-    'answers_csv_parser': 7,
-    'questions_csv_parser': 7,
+    'answers_csv_parser': 3,
+    'questions_csv_parser': 3,
 
     # pipeline 1
     'filter_by_score': 2,
@@ -19,11 +19,11 @@ WORKERS = {
     'calculate_percentage': 1,
 
     # pipeline 2
-    'score_by_user': 3,
+    'score_by_user': 4,
     'filter_top_10_by_score': 1,
 
     # pipeline 3
-    'join': 4,
+    'join': 3,
     'score_by_tag_and_year': 4,
     'top_10_tags': 1,
 }

@@ -59,7 +59,7 @@ def setup_communication(channel:BlockingChannel) -> None:
         if worker in service_config.SHARDED:
             channel.exchange_declare(exchange=worker, exchange_type='direct')
         else:
-            channel.queue_declare(queue=worker, durable=False)
+            channel.queue_declare(queue=worker)
 
 
 def execute_worker(name:str, channel:BlockingChannel) -> None:
@@ -89,7 +89,7 @@ def send_data(data:bytes, channel:BlockingChannel, worker:str, id='', shard_key=
         body=data,
         mandatory=1,
         properties=pika.BasicProperties(
-            delivery_mode=1,  # transient delivery mode
+            #delivery_mode=1,  # transient delivery mode
             correlation_id=id,
         )
     )
@@ -137,7 +137,7 @@ def consume_from(channel:BlockingChannel, worker_name:str) -> Generator:
     if worker_name in service_config.SHARDED:
         # sharded stages guarantee that the messages are routed by the worker
         # unique ID. Thus, we use an exclusive queue and a "direct" exchange
-        result = channel.queue_declare(queue='', exclusive=True, durable=False)
+        result = channel.queue_declare(queue='', exclusive=True)
         queue_name = result.method.queue
 
         channel.queue_bind(
@@ -152,17 +152,16 @@ def consume_from(channel:BlockingChannel, worker_name:str) -> Generator:
     # starts consuming events from the queue
     done_messages_received = 0
     for method_frame, properties, body in channel.consume(queue_name, auto_ack=False):
+        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
         if body == DONE:
             done_messages_received += 1
-
-            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
             if _is_task_done(worker_name, done_messages_received):
                 print(worker_name, 'exiting, received', done_messages_received, 'done')
                 return
 
             continue
 
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
         yield method_frame, properties, body
 
 

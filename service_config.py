@@ -1,3 +1,10 @@
+"""
+This file defines the pipeline's DAG and the number of workers to process each
+stage.
+"""
+
+# indicates the number of nodes on each stage
+# this is used by `compose_builder.py` to define how many services to create
 WORKERS = {
     'client_answers': 1,  # not an actual worker, but helps to avoid special cases
     'client_questions': 1,  # not an actual worker, but helps to avoid special cases
@@ -22,6 +29,8 @@ WORKERS = {
 }
 
 
+# adjacency list representing the DAG. This is required so each worker knows
+# how many workers are on the other stages to receive and send DONE messages.
 NEXT_TASK = {
     'client_answers': ['answers_csv_parser'],
     'client_questions': ['questions_csv_parser'],
@@ -46,6 +55,8 @@ NEXT_TASK = {
 }
 
 
+# list of stages that require the input to be sharded (i.e. to guarantee that
+# each node processes all instances that share a common key).
 SHARDED = [
     'join',
 ]

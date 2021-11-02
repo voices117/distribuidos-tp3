@@ -16,13 +16,13 @@ Se solicita un sistema distribuidos que procese un subconjunto de preguntas y re
 
 El siguiente gráfico representa el DAG de flujo de la información para obtener los resultados solicitados:
 
-![doc/DAG.png](DAG de procesamiento de los datos)
+![DAG de procesamiento de los datos](doc/DAG.png)
 
 ## [Diagrama de robustez](https://app.diagrams.net/#G1Ju8bDw8lI_rvwq1cTl5qs-Z8LIj5t_4b)
 
 El siguiente diagrama de robustez muestra, además del flujo de información, los actores presentes en el sistema y su paralelismo:
 
-![doc/robustez.png](DAG de procesamiento de los datos)
+![DAG de procesamiento de los datos](doc/robustez.png)
 
 
 ## Ejecución

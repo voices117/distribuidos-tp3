@@ -27,6 +27,8 @@ El siguiente diagrama de robustez muestra, además del flujo de información, lo
 
 ## Ejecución
 
+### Pipeline
+
 Para levantar el sistema se debe ejecutar:
 
 ```shell
@@ -35,6 +37,18 @@ make run
 
 Este comando crea un `docker-compose.py` mediante el script `compose_builder.py`. Este script lee la configuración de workers desde [service_config.py](service_config.py) y genera una configuración de acuerdo a ella.
 
+### Cliente
+
+Para ejecutar el cliente primero es necesario generar la imagen de Docker. Luego, se deben configurar las variables de entorno:
+
+ 1. `LINES_PER_CHUNK`: cantidad de líneas por chunk que se envía al pipeline.
+ 2. `NUM_CHUNKS`: cantidad de chunks de cada archivo a enviar. De ser un valor negativo, se envía el archivo completo.
+
+
+```shell
+make image
+LINES_PER_CHUNK=1000 NUM_CHUNKS=100 make client
+```
 
 ## Middleware
 

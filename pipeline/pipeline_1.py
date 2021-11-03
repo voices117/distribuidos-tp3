@@ -7,6 +7,7 @@ negative sentiment analysis.
 import json
 
 from middleware import as_worker, consume_from, send_data
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pika.adapters.blocking_connection import BlockingChannel
 
 
@@ -33,11 +34,12 @@ def filter_by_sentiment_analysis_callback(channel:BlockingChannel):
     the ones with negative value. The count of the remaining answers is sent to
     the last stage that calculates the percentage."""
 
+    analyzer = SentimentIntensityAnalyzer()
     for _, _, body in consume_from(channel, 'filter_by_sentiment_analysis'):
         records = json.loads(body)
         filtered = [
             record for record in records
-            if _get_sentiment_analysis_score(record['Body']) < 0
+            if analyzer.polarity_scores(record['Body'])['compound'] < 0
         ]
         if filtered:
             send_data(
@@ -46,13 +48,6 @@ def filter_by_sentiment_analysis_callback(channel:BlockingChannel):
                 worker='calculate_percentage',
                 id='numerator'
             )
-
-
-def _get_sentiment_analysis_score(body:str) -> int:
-    """Calculates the sentiment score on the given string."""
-
-    # TODO: use NLTK
-    return (hash(body) % 3) - 1
 
 
 @as_worker

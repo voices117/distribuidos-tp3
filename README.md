@@ -1,6 +1,6 @@
 # 75.74 - Sistemas Distribuidos
 
-## TP2
+## TP3
 
 Se solicita un sistema distribuidos que procese un subconjunto de preguntas y respuestas de Stack Overflow
  * La información será provista en archivos CSV
@@ -11,6 +11,8 @@ Se solicita un sistema distribuidos que procese un subconjunto de preguntas y re
 * Como origen de datos se definen los archivos de ingreso registrados en
     * https://www.kaggle.com/ezetowers/tp2-stackoverflow-data-analysis
 
+
+**El sistema debe ser altamente disponible**
 
 ## [DAG de procesamiento](https://app.diagrams.net/#G148Xbc1R3-MDUGZYjM6SZIFoEC09bTu2z)
 

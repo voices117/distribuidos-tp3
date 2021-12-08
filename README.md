@@ -29,6 +29,26 @@ El siguiente diagrama de robustez muestra, además del flujo de información, lo
 
 ## Ejecución
 
+### Datos
+
+El primer paso es descargar el dataset.
+
+  1. [answers.csv](https://www.kaggle.com/ezetowers/tp2-stackoverflow-data-analysis/data?select=answers.csv)
+  2. [questions.csv](https://www.kaggle.com/ezetowers/tp2-stackoverflow-data-analysis/data?select=questions.csv)
+
+Una vez descargados, des-zippear el contenido, crear una carpeta `./data` en el directorio donde se clonó este repositorio y mover los archivos CSV resultantes allí.
+
+El resultado debe ser:
+
+```
+data/
+    answers.csv
+    answers.csv
+doc/
+    ...
+<etc>
+```
+
 ### Pipeline
 
 Para levantar el sistema se debe ejecutar:

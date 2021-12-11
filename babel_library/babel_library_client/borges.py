@@ -1,44 +1,38 @@
-import socket
-from commons.socket import Socket
 import commons.constants as constants
-
-TIMEOUT = 1 #seconds
-PORT = 5786 #TODO: Resolve
-HOST = socket.gethostname() #TODO: Resolve
+from commons.communication import send_request_to
 
 class Borges:
-    def __init__(self):
+    def __init__(self, address, port, timeout=0):
+        self.address = address
+        self.port = port
+        self.timeout = timeout
         pass
 
     def save(self, client, stream, payload):
-        s = Socket(TIMEOUT)
-
         try:
-            s.connect(HOST, PORT)
-            s.send({
+            req = {
                 "type": constants.WRITE_REQUEST,
                 "client": client,
                 "stream": stream,
                 "payload": payload,
-            })
-            res = s.receive()
-            s.close()
+            }
+
+            res = send_request_to(self.address, self.port, req, self.timeout)
+            print(res)
         except Exception:
             raise { "status": constants.CLIENT_ERROR_STATUS, "message": "Error saving" }
     
+        return res
 
     def read(self, client, stream):
-        s = Socket(TIMEOUT)
-
         try:
-            s.connect(HOST, PORT)
-            s.send({
+            req = {
                 "type": constants.READ_REQUEST,
                 "client": client,
                 "stream": stream,
-            })
-            res = s.receive()
-            s.close()
+            }
+            res = send_request_to(self.address, self.port, req, self.timeout)
+            print(res)
         except Exception:
             raise { "status": constants.CLIENT_ERROR_STATUS, "message": "Error reading" }
   

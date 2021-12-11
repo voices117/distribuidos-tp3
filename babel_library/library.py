@@ -20,7 +20,7 @@ class Library:
             with open(f'./data/{client}/{stream}', "r") as file:
                 payload = file.read()
         except Exception as error:
-            return { "status": constants.ERROR_STATUS, "message": "Error reading."}
+            raise { "status": constants.ERROR_STATUS, "message": "Error reading."}
 
         return { "status": constants.OK_STATUS, "content": payload }
 
@@ -31,7 +31,7 @@ class Library:
         try: 
             Path(f'./data/{client}').mkdir(parents=True, exist_ok=True)
         except OSError as error:
-            pass
+            raise { "status": constants.ERROR_STATUS, "message": "Error writing."}
 
         with open(f'./data/{client}/{stream}', "a") as file:
             json.dump(request["payload"], file)

@@ -3,7 +3,7 @@ from commons.socket import Socket
 import commons.constants as constants
 
 TIMEOUT = 1 #seconds
-PORT = 5111 #TODO: Resolve
+PORT = 5786 #TODO: Resolve
 HOST = socket.gethostname() #TODO: Resolve
 
 class Borges:
@@ -24,9 +24,7 @@ class Borges:
             res = s.receive()
             s.close()
         except Exception:
-            { "status": constants.CLIENT_ERROR_STATUS, "message": "Error saving" }
-
-        return
+            raise { "status": constants.CLIENT_ERROR_STATUS, "message": "Error saving" }
     
 
     def read(self, client, stream):
@@ -42,8 +40,6 @@ class Borges:
             res = s.receive()
             s.close()
         except Exception:
-            { "status": constants.CLIENT_ERROR_STATUS, "message": "Error reading" }
-            return
-
-
+            raise { "status": constants.CLIENT_ERROR_STATUS, "message": "Error reading" }
+  
         return res

@@ -37,23 +37,37 @@ class Librarian:
         """Saves/Reads the request to/from it's own storage,
          and dispatches the requests to the other librarians to get quorum"""
         successCount = 0
+        responses = []
 
-        res = self.library.handle(request) # Save it on my own storage
-        successCount += 1
+        try:
+            res = self.library.handle(request) # Save it on my own storage
+            responses.append(res)
+            successCount += 1
+        except Exception as e:
+            print('Error', e)
 
         # Send the request to siblings
         if "internal" not in request or request["internal"] is not True:
             for sibling in siblings:
                 try:
-                    self.dispatch(request, sibling)
+                    print(f'Dispatching to: {sibling}')
+                    res = self.dispatch(request, sibling)
+                    print(f'Response: {res}')
+                    responses.append(res)
                     successCount += 1
-                except Exception:
-                    print('error dispatching')
+                except Exception as e:
+                    print('error dispatching', e)
+        else:
+            return res
+
 
         # Only for writes
-        if successCount >= QUORUM:
+        if successCount >= QUORUM and request["type"] == constants.WRITE_REQUEST:
             return { "status": constants.OK_STATUS }
+        elif successCount >= QUORUM and request["type"] == constants.READ_REQUEST:
+            return self.determineResponse(responses) # This will compare all responses and return the one with the most appearances
         else:
+            print(responses)
             return { "status": constants.ERROR_STATUS }
 
 
@@ -62,7 +76,20 @@ class Librarian:
         try:
             request["internal"] = True
             res = send_request_to(sibling["name"], sibling["port"], request, TIMEOUT)
-        except Exception:
+        except Exception as err:
+            print(err)
             raise { "status": constants.INTERNAL_REQUEST_ERROR, "message": "Error saving on replica" }
         
         return res
+
+    def determineResponse(self, responses):
+        """Returns the most frecuent response"""
+        dict = {}
+        count, itm = 0, ''
+        for item in responses:
+            res = str(item)
+
+            dict[res] = dict.get(res, 0) + 1
+            if dict[res] >= count:
+                count, itm = dict[res], item
+        return itm

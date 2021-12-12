@@ -24,9 +24,10 @@ class Library:
             with open(f'./data_{WORKER_ID}/{client}/{stream}', "r") as file:
                 payload = file.read()
         except Exception as error:
+            print(error)
             raise { "status": constants.ERROR_STATUS, "message": "Error reading."}
 
-        return { "status": constants.OK_STATUS, "content": payload }
+        return payload
 
     def handle_write(self, request):
         client = request["client"]

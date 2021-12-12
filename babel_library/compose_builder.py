@@ -4,7 +4,7 @@ import json
 from config import LIBRARIANS, MAX_QUEUE_SIZE, TIMEOUT
 
 COMPOSE_TEMPLATE = """
-version: '3'
+version: '3.4'
 
 x-common-env-variables: &common-env-variables
     PYTHONUNBUFFERED: 1
@@ -14,7 +14,7 @@ x-base-worker: &base-worker
     build:
       context: .
       dockerfile: Dockerfile
-    command: "main.py"
+    command: python3.9 main.py
     volumes:
         - ./:/app
     networks:
@@ -33,7 +33,7 @@ SERVICE_TEMPLATE = """
             MAX_QUEUE_SIZE: {max_queue_size}
             PORT: {port}
             QUORUM: {quorum}
-            ARCHITECTURE: {architecture}
+            ARCHITECTURE: '{architecture}'
 
 """
 
@@ -41,9 +41,9 @@ NETWORK_TEMPLATE = """
 networks:
     storage_tp3_network:
         ipam:
-        driver: default
-        config:
-            - subnet: 173.10.125.0/24
+            driver: default
+            config:
+                - subnet: 173.105.125.0/24
 
 """
 

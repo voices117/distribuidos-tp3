@@ -32,7 +32,6 @@ class Borges:
                 "stream": stream,
             }
             res = send_request_to(self.address, self.port, req, self.timeout)
-            print(res)
         except Exception:
             raise { "status": constants.CLIENT_ERROR_STATUS, "message": "Error reading" }
   

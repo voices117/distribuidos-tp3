@@ -15,6 +15,8 @@ class Library:
             return self.handle_read(request)
         elif request["type"] == constants.WRITE_REQUEST:
             return self.handle_write(request)
+        elif request["type"] == constants.DELETE_REQUEST:
+            return self.handle_delete(request)
 
     def handle_read(self, request):
         client = request["client"]
@@ -35,11 +37,26 @@ class Library:
 
         try: 
             Path(f'./data_{WORKER_ID}/{client}').mkdir(parents=True, exist_ok=True)
-        except OSError as error:
+        except Exception as error:
+            print(error)
             raise { "status": constants.ERROR_STATUS, "message": "Error writing."}
 
         with open(f'./data_{WORKER_ID}/{client}/{stream}', "a") as file:
             json.dump(request["payload"], file)
             file.write('\n')
 
+        return { "status": constants.OK_STATUS }
+
+    def handle_delete(self, request):
+        client = request["client"]
+        stream = request["stream"]
+
+        try:
+            path = f'./data_{WORKER_ID}/{client}/{stream}'
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as error:
+            print(error)
+            raise { "status": constants.ERROR_STATUS, "message": "Error removing."}
+        
         return { "status": constants.OK_STATUS }

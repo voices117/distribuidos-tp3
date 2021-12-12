@@ -36,3 +36,17 @@ class Borges:
             raise { "status": constants.CLIENT_ERROR_STATUS, "message": "Error reading" }
   
         return res
+
+    def delete(self, client, stream):
+        try:
+            req = {
+                "type": constants.DELETE_REQUEST,
+                "client": client,
+                "stream": stream,
+            }
+            res = send_request_to(self.address, self.port, req, self.timeout)
+            print(res)
+        except Exception:
+            raise { "status": constants.CLIENT_ERROR_STATUS, "message": "Error deleting" }
+  
+        return res

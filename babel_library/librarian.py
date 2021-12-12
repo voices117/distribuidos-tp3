@@ -60,12 +60,12 @@ class Librarian:
         else:
             return res
 
-
-        # Only for writes
         if successCount >= QUORUM and request["type"] == constants.WRITE_REQUEST:
             return { "status": constants.OK_STATUS }
         elif successCount >= QUORUM and request["type"] == constants.READ_REQUEST:
             return self.determineResponse(responses) # This will compare all responses and return the one with the most appearances
+        elif successCount >= QUORUM and request["type"] == constants.DELETE_REQUEST:
+            return { "status": constants.OK_STATUS }
         else:
             print(responses)
             return { "status": constants.ERROR_STATUS }

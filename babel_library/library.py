@@ -1,6 +1,10 @@
+import os
 import commons.constants as constants
 import json
 from pathlib import Path
+from commons.helpers import intTryParse
+
+WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 
 class Library:
     def __init__(self):
@@ -17,7 +21,7 @@ class Library:
         stream = request["stream"]
         
         try:
-            with open(f'./data/{client}/{stream}', "r") as file:
+            with open(f'./data_{WORKER_ID}/{client}/{stream}', "r") as file:
                 payload = file.read()
         except Exception as error:
             raise { "status": constants.ERROR_STATUS, "message": "Error reading."}
@@ -29,11 +33,11 @@ class Library:
         stream = request["stream"]
 
         try: 
-            Path(f'./data/{client}').mkdir(parents=True, exist_ok=True)
+            Path(f'./data_{WORKER_ID}/{client}').mkdir(parents=True, exist_ok=True)
         except OSError as error:
             raise { "status": constants.ERROR_STATUS, "message": "Error writing."}
 
-        with open(f'./data/{client}/{stream}', "a") as file:
+        with open(f'./data_{WORKER_ID}/{client}/{stream}', "a") as file:
             json.dump(request["payload"], file)
             file.write('\n')
 

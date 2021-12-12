@@ -1,22 +1,22 @@
 
 import os
 import random
-from library import Library
+from library import WORKER_ID, Library
 from commons.socket import Socket
 from commons.communication import send_request_to
+from commons.helpers import intTryParse
 import commons.constants as constants
 import socket
+import json
 
-MAX_QUEUE_SIZE = os.environ.get('MAX_QUEUE_SIZE') or 5
-PORT = os.environ.get('PORT') or random.randint(5000, 6000)
-TIMEOUT = 1 #seconds
-QUORUM = 2
-siblings = [
-    {
-        "address": socket.gethostname(),
-        "port": 5799
-    }
-]
+MAX_QUEUE_SIZE = intTryParse(os.environ.get('MAX_QUEUE_SIZE')) or 5
+PORT = intTryParse(os.environ.get('PORT')) or random.randint(5000, 6000)
+TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
+QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
+WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
+
+architecture = json.loads(os.environ.get('ARCHITECTURE')) or []
+siblings = list(filter(lambda l: l["id"] != WORKER_ID, architecture))
 
 
 class Librarian:
@@ -61,7 +61,7 @@ class Librarian:
         """Dispatches the request to siblings to save/read to/from their storage"""
         try:
             request["internal"] = True
-            res = send_request_to(sibling["address"], sibling["port"], request, TIMEOUT)
+            res = send_request_to(sibling["name"], sibling["port"], request, TIMEOUT)
         except Exception:
             raise { "status": constants.INTERNAL_REQUEST_ERROR, "message": "Error saving on replica" }
         

@@ -135,5 +135,5 @@ docker-compose.yml
 
 */data/*
 */data_*
-
+data_*
 .vscode/

@@ -10,20 +10,9 @@ class Library:
     def __init__(self):
         pass
 
-    def handle(self, request):
-        if request["type"] == constants.READ_REQUEST:
-            return self.handle_read(request)
-        elif request["type"] == constants.WRITE_REQUEST:
-            return self.handle_write(request)
-        elif request["type"] == constants.DELETE_REQUEST:
-            return self.handle_delete(request)
-
     def handle_read(self, request):
-        client = request["client"]
-        stream = request["stream"]
-        
         try:
-            with open(f'./data_{WORKER_ID}/{client}/{stream}', "r") as file:
+            with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', "r") as file:
                 payload = file.read()
         except Exception as error:
             print(error)
@@ -32,27 +21,25 @@ class Library:
         return payload
 
     def handle_write(self, request):
-        client = request["client"]
-        stream = request["stream"]
-
         try: 
-            Path(f'./data_{WORKER_ID}/{client}').mkdir(parents=True, exist_ok=True)
+            Path(f'./data_{WORKER_ID}/{request.client}').mkdir(parents=True, exist_ok=True)
         except Exception as error:
             print(error)
             raise { "status": constants.ERROR_STATUS, "message": "Error writing."}
 
-        with open(f'./data_{WORKER_ID}/{client}/{stream}', "a") as file:
-            json.dump(request["payload"], file)
+        mode = 'a'
+        if request.replace:
+            mode = 'w'
+
+        with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', mode) as file:
+            json.dump(request.payload, file)
             file.write('\n')
 
         return { "status": constants.OK_STATUS }
 
     def handle_delete(self, request):
-        client = request["client"]
-        stream = request["stream"]
-
         try:
-            path = f'./data_{WORKER_ID}/{client}/{stream}'
+            path = f'./data_{WORKER_ID}/{request.client}/{request.stream}'
             if os.path.exists(path):
                 os.remove(path)
         except Exception as error:

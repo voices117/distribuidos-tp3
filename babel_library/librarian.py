@@ -1,12 +1,13 @@
-
 import os
 import random
-from library import WORKER_ID, Library
+from requests.delete import Delete
+from requests.write import Write
+from requests.read import Read
+from library import Library
 from commons.socket import Socket
 from commons.communication import send_request_to
 from commons.helpers import intTryParse
 import commons.constants as constants
-import socket
 import json
 
 MAX_QUEUE_SIZE = intTryParse(os.environ.get('MAX_QUEUE_SIZE')) or 5
@@ -15,9 +16,8 @@ TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
 QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 
-architecture = json.loads(os.environ.get('ARCHITECTURE')) or []
+architecture = json.loads(os.environ.get('ARCHITECTURE') or "[]") 
 siblings = list(filter(lambda l: l["id"] != WORKER_ID, architecture))
-
 
 class Librarian:
     def __init__(self):
@@ -36,11 +36,28 @@ class Librarian:
     def handle(self, request):
         """Saves/Reads the request to/from it's own storage,
          and dispatches the requests to the other librarians to get quorum"""
+        req = self.parse(request)
+        return req.execute(self.library, siblings)
+        
+    def parse(self, request):
+        if request["type"] == constants.READ_REQUEST:
+            return Read(request)
+        elif request["type"] == constants.WRITE_REQUEST:
+            return Write(request)
+        elif request["type"] == constants.DELETE_REQUEST:
+            return Delete(request)
+
+
+    def handle_read(self, request):
+        if "internal" not in request or request["internal"] is not True: #This means that the request comes directly from the client
+            pass
+        else:
+            pass
         successCount = 0
         responses = []
 
         try:
-            res = self.library.handle(request) # Save it on my own storage
+            res = self.library.handle(request)
             responses.append(res)
             successCount += 1
         except Exception as e:
@@ -48,27 +65,53 @@ class Librarian:
 
         # Send the request to siblings
         if "internal" not in request or request["internal"] is not True:
-            for sibling in siblings:
-                try:
-                    print(f'Dispatching to: {sibling}')
-                    res = self.dispatch(request, sibling)
-                    print(f'Response: {res}')
-                    responses.append(res)
-                    successCount += 1
-                except Exception as e:
-                    print('error dispatching', e)
+            successCount, responses = self.propagate_request(siblings, request)
         else:
             return res
 
-        if successCount >= QUORUM and request["type"] == constants.WRITE_REQUEST:
-            return { "status": constants.OK_STATUS }
-        elif successCount >= QUORUM and request["type"] == constants.READ_REQUEST:
+       
+        if successCount >= QUORUM :
             return self.determineResponse(responses) # This will compare all responses and return the one with the most appearances
-        elif successCount >= QUORUM and request["type"] == constants.DELETE_REQUEST:
-            return { "status": constants.OK_STATUS }
         else:
             print(responses)
             return { "status": constants.ERROR_STATUS }
+
+    def handle_delete(self, request):
+        successCount = 0
+
+        try:
+            res = self.library.handle(request)
+            successCount += 1
+        except Exception as e:
+            print('Error', e)
+
+        # Send the request to siblings
+        if "internal" not in request or request["internal"] is not True:
+            successCount, responses = self.propagate_request(siblings, request)
+        else:
+            return res
+
+        if successCount >= QUORUM:
+            return { "status": constants.OK_STATUS }
+        else:
+            return { "status": constants.ERROR_STATUS }
+
+
+    def propagate_request(self, siblings, request):
+        successCount = 0
+        responses = []
+        
+        for sibling in siblings:
+            try:
+                print(f'Dispatching to: {sibling}')
+                res = self.dispatch(request, sibling)
+                print(f'Response: {res}')
+                responses.append(res)
+                successCount += 1
+            except Exception as e:
+                print('error dispatching', e)
+
+        return (successCount, responses)
 
 
     def dispatch(self, request, sibling):

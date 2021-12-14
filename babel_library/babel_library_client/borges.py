@@ -8,13 +8,14 @@ class Borges:
         self.timeout = timeout
         pass
 
-    def save(self, client, stream, payload):
+    def save(self, client, stream, payload, replace=False):
         try:
             req = {
                 "type": constants.WRITE_REQUEST,
                 "client": client,
                 "stream": stream,
                 "payload": payload,
+                "replace": replace
             }
 
             res = send_request_to(self.address, self.port, req, self.timeout)

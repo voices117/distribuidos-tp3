@@ -3,8 +3,8 @@ from babel_library_client.borges import Borges
 import socket
 
 TIMEOUT = 2 #seconds
-PORT = 5000 #TODO: Resolve
-HOST = "173.105.125.4"#socket.gethostname()
+PORT = 5847 #TODO: Resolve
+HOST = socket.gethostname()#"173.105.125.4"#
 
 client = Borges(HOST, PORT, TIMEOUT)
 

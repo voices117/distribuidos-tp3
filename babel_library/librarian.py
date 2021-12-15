@@ -1,7 +1,7 @@
 import os
 import random
-from babel_library.requests.commit import Commit
-from babel_library.requests.prepare import Prepare
+from requests.commit import Commit
+from requests.prepare import Prepare
 from requests.delete import Delete
 from requests.write import Write
 from requests.read import Read
@@ -18,7 +18,7 @@ TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
 QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 
-architecture = json.loads(os.environ.get('ARCHITECTURE') or "[]") 
+architecture = json.loads(os.environ.get('ARCHITECTURE') or '[{"id": 2, "name": "axel-AB350-Gaming-3", "port": 5481}]') 
 siblings = list(filter(lambda l: l["id"] != WORKER_ID, architecture))
 
 class Librarian:
@@ -32,15 +32,15 @@ class Librarian:
         while True:
             client = self.sock.attend()
             req = client.receive()
-            res = self.handle(req)
+            res = self.handle(req, False)
             client.send(res)
             client.close()
 
-    def handle(self, request):
+    def handle(self, request, immediately=False):
         """Saves/Reads the request to/from it's own storage,
          and dispatches the requests to the other librarians to get quorum"""
         req = self.parse(request)
-        return req.execute(self, siblings)
+        return req.execute(self, siblings, immediately)
         
     def parse(self, request):
         if request["type"] == constants.READ_REQUEST:
@@ -52,11 +52,11 @@ class Librarian:
         elif request["type"] == constants.PREPARE_REQUEST:
             return Prepare(request)
         elif request["type"] == constants.COMMIT_REQUEST:
-            return Commit(request)
+            return Commit(request["id"])
 
     def save_request(self, req):
-        self.save_requests[req.id] = req
+        self.saved_requests[req.id] = req.request
 
     def execute_saved_request(self, id):
         req = self.saved_requests[id]
-        return self.handle(req.req)
+        return self.handle(req, True)

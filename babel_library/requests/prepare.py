@@ -1,15 +1,18 @@
-from requests.request import Request
 import commons.constants as constants
 import uuid
 
 class Prepare():
     def __init__(self, req):
         self.type = constants.PREPARE_REQUEST
-        self.id = uuid.uuid1()
-        self.req = req
 
+        if req["type"] == constants.PREPARE_REQUEST:
+            self.id = req["id"]
+            self.request = req["request"]
+        else:
+            self.id = str(uuid.uuid1())
+            self.request = req
 
-    def execute(self, librarian, siblings):
+    def execute(self, librarian, siblings, immediately):
         librarian.save_request(self)
         return { "status": constants.READY }
 
@@ -18,5 +21,5 @@ class Prepare():
         return {
             "type": self.type,
             "id": self.id,
-            "req": self.req
+            "request": self.request
         }

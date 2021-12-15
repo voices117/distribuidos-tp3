@@ -1,10 +1,16 @@
-from requests.request import Request
 import commons.constants as constants
 
 class Commit():
-    def __init__(self, prepare):
-        self.id = prepare.id
+    def __init__(self, id):
         self.type = constants.COMMIT_REQUEST
+        self.id = id
+        
 
-    def execute(self, librarian, siblings):
+    def execute(self, librarian, siblings, immediately):
         return librarian.execute_saved_request(self.id)
+
+    def to_dictionary(self):
+        return {
+            "type": self.type,
+            "id": self.id
+        }

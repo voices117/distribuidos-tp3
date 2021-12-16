@@ -10,10 +10,13 @@ QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
 
 class Request:
-    def __init__(self):
-        pass
+    def __init__(self, req):
+        if "immediately" in req and req["immediately"] == True:
+            self.immediately = True
+        else:
+            self.immediately = False
 
-    def execute(self, librarian, siblings, immediately):
+    def execute(self, librarian, siblings):
         try:
             return self.handle_internal(librarian.library)
         except Exception as err:
@@ -23,16 +26,14 @@ class Request:
     def handle_internal(self):
         pass
 
-    def handle_two_phase_commit(self, siblings):
+    def handle_two_phase_commit(self, librarian, siblings):
         responses = []
 
         # Send the PREPARE message with the payload
         prepare = Prepare(self.to_dictionary())
         for sibling in siblings:
             try:
-                print(f'Sending prepare to: {sibling}')
-                res = self.dispatch(prepare, sibling)
-                print(f'Response: {res}')
+                res = librarian.dispatch(prepare, sibling)
                 responses.append(res)
             except Exception as e:
                 responses.append(e)
@@ -47,24 +48,12 @@ class Request:
             # Send the commit message
             for sibling in siblings:
                 try:
-                    print(f'Sending commit to: {sibling}')
                     commit = Commit(prepare.id)
-                    res = self.dispatch(commit, sibling)
-                    print(f'Response: {res}')
+                    res = librarian.dispatch(commit, sibling)
                 except Exception as e:
                     print('Error dispatching commit', e)
 
         return responses
-
-
-    def dispatch(self, req, sibling):
-        """Dispatches the request to siblings to save/read to/from their storage"""
-        try:
-            res = send_request_to(sibling["name"], sibling["port"], req.to_dictionary(), TIMEOUT)
-        except Exception as err:
-            raise { "status": constants.ERROR_STATUS, "message": err }
-        
-        return res
 
     def to_dictionary(self):
         return {

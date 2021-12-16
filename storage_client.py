@@ -12,6 +12,6 @@ HOST = "173.150.125.2" #LIBRARIANS[rand]["name"]
 
 client = Borges(HOST, PORT, TIMEOUT)
 
-client.save(1, 1, "{ id: 1, msg: DONE }", replace=False)
-#print(client.read(1, 1))
-client.delete(1,1)
+#client.save(1, 1, "{ id: 1, msg: DONE }", replace=False)
+print(client.read(1, 1))
+#client.delete(1,1)

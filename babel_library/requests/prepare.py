@@ -12,7 +12,7 @@ class Prepare():
             self.id = str(uuid.uuid1())
             self.request = req
 
-    def execute(self, librarian, siblings, immediately):
+    def execute(self, librarian, siblings):
         librarian.save_request(self)
         return { "status": constants.READY }
 

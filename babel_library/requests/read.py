@@ -7,31 +7,30 @@ QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 
 class Read(Request):
     def __init__(self, req):
+        super().__init__(req)
         self.type = constants.READ_REQUEST
         self.client = req["client"]
         self.stream = req["stream"]
 
-        if "immediately" in req:
-            self.immediately = True
-        else:
-            self.immediately = False
 
     def handle_internal(self, library):
         return library.handle_read(self)
 
-    def execute(self, librarian, siblings, immediately):
+    def execute(self, librarian, siblings):
         responses = []
         successCount = 0
         
-        res = super().execute(librarian, siblings, immediately) 
+        res = super().execute(librarian, siblings) 
         successCount+=1
-        responses.append(res)    
+        responses.append(res)
 
         if not self.immediately:
-            (responses, successCount) = self.handle_read_propagation(siblings)
+            (responses, successCount) = self.handle_read_propagation(librarian, siblings)
 
             if successCount >= QUORUM:
-                return self.determineResponse(responses)
+                majority_response = format(self.determineResponse(responses))
+                librarian.sync(self, majority_response) #TODO: Do in thread
+                return majority_response
             else:
                 print("Didn't get quorum")
                 return { "status": constants.ERROR_STATUS }
@@ -39,13 +38,14 @@ class Read(Request):
             return res
 
 
-    def handle_read_propagation(self, siblings):
+    def handle_read_propagation(self, librarian, siblings):
         responses = []
         # Send the read request to siblings
         successCount = 0
+        self.immediately = True
         for sibling in siblings:
             try:
-                res = self.dispatch(self, sibling)
+                res = librarian.dispatch(self, sibling)
                 responses.append(res)
                 successCount += 1
             except Exception as e:

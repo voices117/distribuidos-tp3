@@ -6,7 +6,7 @@ class Commit():
         self.id = id
         
 
-    def execute(self, librarian, siblings, immediately):
+    def execute(self, librarian, siblings):
         return librarian.execute_saved_request(self.id)
 
     def to_dictionary(self):

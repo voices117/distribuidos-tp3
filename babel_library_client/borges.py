@@ -1,5 +1,9 @@
-import commons.constants as constants
-from commons.communication import send_request_to
+import sys
+
+sys.path.insert(0, './babel_library')
+
+import babel_library.commons.constants as constants
+from babel_library.commons.communication import send_request_to
 
 class Borges:
     def __init__(self, address, port, timeout=0):

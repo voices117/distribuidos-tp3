@@ -76,6 +76,16 @@ LIBRARIANS=[
         "id": 3,
         "name": "librarian_4",
         "port": 5002
+    },
+    {
+        "id": 4,
+        "name": "librarian_5",
+        "port": 5003
+    },
+    {
+        "id": 5,
+        "name": "librarian_6",
+        "port": 5004
     }
 ]
 

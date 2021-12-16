@@ -29,6 +29,9 @@ class Librarian:
         client = self.sock.listen(MAX_QUEUE_SIZE, PORT)
         print(f"Librarian listening on port {PORT}.")
         
+        # Retrieve data from siblings
+
+        # Main loop
         while True:
             client = self.sock.attend()
             req = client.receive()

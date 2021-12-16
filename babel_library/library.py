@@ -32,7 +32,7 @@ class Library:
             mode = 'w'
 
         with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', mode) as file:
-            json.dump(request.payload, file)
+            file.write(request.payload)
             file.write('\n')
 
         return { "status": constants.OK_STATUS }

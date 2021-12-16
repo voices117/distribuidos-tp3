@@ -28,7 +28,7 @@ class Read(Request):
             (responses, successCount) = self.handle_read_propagation(librarian, siblings)
 
             if successCount >= QUORUM:
-                majority_response = format(self.determineResponse(responses))
+                majority_response = self.determineResponse(responses)
                 librarian.sync(self, majority_response) #TODO: Do in thread
                 return majority_response
             else:

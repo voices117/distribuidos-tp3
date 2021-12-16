@@ -69,7 +69,7 @@ class Librarian:
         req = Write({
             "client": request.client,
             "stream": request.stream,
-            "payload": content,
+            "payload": content.rstrip('\n'),
             "replace": True,
             "immediately": True
         })

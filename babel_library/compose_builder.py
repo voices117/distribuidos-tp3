@@ -34,6 +34,8 @@ SERVICE_TEMPLATE = """
             PORT: {port}
             QUORUM: {quorum}
             ARCHITECTURE: '{architecture}'
+        ports:
+            - "{port}:{port}"
 
 """
 

@@ -16,8 +16,8 @@ class Request:
     def execute(self, librarian, siblings, immediately):
         try:
             return self.handle_internal(librarian.library)
-        except Exception as e:
-            print('Error', e)
+        except Exception as err:
+            raise { "status": constants.ERROR_STATUS, "message": err }
             
 
     def handle_internal(self):
@@ -42,7 +42,7 @@ class Request:
         # If I have quorum
         ready_received = len(list(filter(lambda r: r["status"] == constants.READY, responses)))
         if ready_received >= QUORUM - 1:
-            # TODO: Save commit to rabbit
+            # TODO: Save Request commit to rabbit
             
             # Send the commit message
             for sibling in siblings:
@@ -62,15 +62,11 @@ class Request:
         try:
             res = send_request_to(sibling["name"], sibling["port"], req.to_dictionary(), TIMEOUT)
         except Exception as err:
-            raise { "status": constants.INTERNAL_REQUEST_ERROR, "message": "Error dispatching" }
+            raise { "status": constants.ERROR_STATUS, "message": err }
         
         return res
 
     def to_dictionary(self):
         return {
-            "type": self.type,
-            "client": self.client,
-            "stream": self.stream,
-            "payload": self.payload,
-            "replace": self.replace
+            "type": self.type
         }

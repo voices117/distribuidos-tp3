@@ -27,6 +27,8 @@ services:
             PORT: 5000
             QUORUM: 2
             ARCHITECTURE: '[{"id": 1, "name": "librarian_2", "port": 5000}, {"id": 2, "name": "librarian_3", "port": 5001}, {"id": 3, "name": "librarian_4", "port": 5002}]'
+        ports:
+            - "5000:5000"
 
 
     librarian_3:
@@ -39,6 +41,8 @@ services:
             PORT: 5001
             QUORUM: 2
             ARCHITECTURE: '[{"id": 1, "name": "librarian_2", "port": 5000}, {"id": 2, "name": "librarian_3", "port": 5001}, {"id": 3, "name": "librarian_4", "port": 5002}]'
+        ports:
+            - "5001:5001"
 
 
     librarian_4:
@@ -51,6 +55,8 @@ services:
             PORT: 5002
             QUORUM: 2
             ARCHITECTURE: '[{"id": 1, "name": "librarian_2", "port": 5000}, {"id": 2, "name": "librarian_3", "port": 5001}, {"id": 3, "name": "librarian_4", "port": 5002}]'
+        ports:
+            - "5002:5002"
 
 
 networks:

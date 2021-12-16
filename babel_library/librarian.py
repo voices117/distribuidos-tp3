@@ -18,7 +18,7 @@ TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
 QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 
-architecture = json.loads(os.environ.get('ARCHITECTURE') or '[{"id": 2, "name": "axel-AB350-Gaming-3", "port": 5481}]') 
+architecture = json.loads(os.environ.get('ARCHITECTURE') or '[{"id": 2, "name": "axel-AB350-Gaming-3", "port": 5001}]') 
 siblings = list(filter(lambda l: l["id"] != WORKER_ID, architecture))
 
 class Librarian:

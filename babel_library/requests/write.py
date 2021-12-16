@@ -19,3 +19,12 @@ class Write(Request):
 
     def handle_internal(self, library):
         return library.handle_write(self)
+
+    def to_dictionary(self):
+        return {
+            "type": self.type,
+            "client": self.client,
+            "stream": self.stream,
+            "payload": self.payload,
+            "replace": self.replace
+        }

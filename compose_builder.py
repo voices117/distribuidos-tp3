@@ -23,7 +23,7 @@ x-base-worker: &base-worker
 x-base-storage-worker: &base-storage-worker
     build:
       context: .
-      dockerfile: storage.Dockerfile
+      dockerfile: Dockerfile.storage
     command: python3.9 /app/storage_main.py
     volumes:
         - ./:/app
@@ -37,6 +37,8 @@ services:
         ports:
             - 5672:5672
             - 15672:15672
+        networks:
+            - storage_tp3_network
 """
 
 SERVICE_TEMPLATE = """

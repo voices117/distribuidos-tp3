@@ -11,12 +11,15 @@ from babel_library.commons.communication import send_request_to
 from babel_library.commons.helpers import intTryParse
 import babel_library.commons.constants as constants
 import json
+import middleware
+import pika
 
 MAX_QUEUE_SIZE = intTryParse(os.environ.get('MAX_QUEUE_SIZE')) or 5
 PORT = intTryParse(os.environ.get('PORT')) or random.randint(5000, 6000)
 TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
 QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
+RABBITMQ_ADDRESS = os.environ.get('RABBITMQ_ADDRESS') or 'localhost'
 
 architecture = json.loads(os.environ.get('ARCHITECTURE') or '[{"id": 2, "name": "axel-AB350-Gaming-3", "port": 5001}]') 
 siblings = list(filter(lambda l: l["id"] != WORKER_ID, architecture))
@@ -25,11 +28,11 @@ class Librarian:
     def __init__(self):
         self.library = Library()
         self.sock = Socket()
-        self.saved_requests = {}
+        self.prepared_requests = {}
         client = self.sock.listen(MAX_QUEUE_SIZE, PORT)
-        self.init_safe_storage()
+        self.init_failsafe_storage()
         print(f"Librarian listening on port {PORT}.")
-
+        
         # Main loop
         while True:
             client = self.sock.attend()
@@ -38,8 +41,10 @@ class Librarian:
             client.send(res)
             client.close()
 
-    def init_safe_storage(self):
-        pass
+    def init_failsafe_storage(self):
+        self.connection = middleware.connect(RABBITMQ_ADDRESS)
+        self.channel = self.connection.channel()
+        self.channel.queue_declare(queue=f'storage_{WORKER_ID}')
 
     def handle(self, request):
         """Saves/Reads the request to/from it's own storage,
@@ -57,15 +62,23 @@ class Librarian:
         elif request["type"] == constants.PREPARE_REQUEST:
             return Prepare(request)
         elif request["type"] == constants.COMMIT_REQUEST:
-            return Commit(request["id"])
+            return Commit(request)
 
-    def save_request(self, req):
-        self.saved_requests[req.id] = req.request
+    def prepare_request(self, req):
+        self.prepared_requests[req.id] = req.request
 
-    def execute_saved_request(self, id):
-        req = self.saved_requests[id]
-        req["immediately"] = True
-        return self.handle(req)
+    # def save_action(self, req):
+    #     self.channel.basic_publish(exchange='',
+    #                   routing_key=f'storage_{WORKER_ID}',
+    #                   body=json.dumps(req.to_dictionary()))
+
+    def execute_prepared_request(self, id):
+        if id in self.prepared_requests:
+            req = self.prepared_requests[id]
+            req["immediately"] = True
+            return self.handle(req)
+
+        return { "status": constants.OK_STATUS }
     
     def sync(self, request, content):
         """This function is called when a READ happens, it tries to sync all the nodes with the

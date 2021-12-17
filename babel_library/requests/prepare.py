@@ -13,7 +13,7 @@ class Prepare():
             self.request = req
 
     def execute(self, librarian, siblings):
-        librarian.save_request(self)
+        librarian.prepare_request(self)
         return { "status": constants.READY }
 
 

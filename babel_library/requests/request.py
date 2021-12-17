@@ -39,17 +39,13 @@ class Request:
                 responses.append(e)
                 print('Error dispatching prepare', e)
 
-
         # If I have quorum
         ready_received = len(list(filter(lambda r: r["status"] == constants.READY, responses)))
         if ready_received >= QUORUM - 1:
-            # TODO: Save Request commit to rabbit
-            
-            
+            commit = Commit(prepare.id)
             # Send the commit message
             for sibling in siblings:
                 try:
-                    commit = Commit(prepare.id)
                     res = librarian.dispatch(commit, sibling)
                 except Exception as e:
                     print('Error dispatching commit', e)

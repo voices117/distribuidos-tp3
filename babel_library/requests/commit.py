@@ -1,4 +1,4 @@
-import commons.constants as constants
+import babel_library.commons.constants as constants
 
 class Commit():
     def __init__(self, id):

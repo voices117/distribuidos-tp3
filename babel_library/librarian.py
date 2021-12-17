@@ -1,15 +1,15 @@
 import os
 import random
-from requests.commit import Commit
-from requests.prepare import Prepare
-from requests.delete import Delete
-from requests.write import Write
-from requests.read import Read
-from library import Library
-from commons.socket import Socket
-from commons.communication import send_request_to
-from commons.helpers import intTryParse
-import commons.constants as constants
+from babel_library.requests.commit import Commit
+from babel_library.requests.prepare import Prepare
+from babel_library.requests.delete import Delete
+from babel_library.requests.write import Write
+from babel_library.requests.read import Read
+from babel_library.library import Library
+from babel_library.commons.socket import Socket
+from babel_library.commons.communication import send_request_to
+from babel_library.commons.helpers import intTryParse
+import babel_library.commons.constants as constants
 import json
 
 MAX_QUEUE_SIZE = intTryParse(os.environ.get('MAX_QUEUE_SIZE')) or 5
@@ -27,6 +27,7 @@ class Librarian:
         self.sock = Socket()
         self.saved_requests = {}
         client = self.sock.listen(MAX_QUEUE_SIZE, PORT)
+        self.init_safe_storage()
         print(f"Librarian listening on port {PORT}.")
 
         # Main loop
@@ -36,6 +37,9 @@ class Librarian:
             res = self.handle(req)
             client.send(res)
             client.close()
+
+    def init_safe_storage(self):
+        pass
 
     def handle(self, request):
         """Saves/Reads the request to/from it's own storage,

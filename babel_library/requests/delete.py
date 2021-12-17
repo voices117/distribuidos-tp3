@@ -1,5 +1,5 @@
-from requests.request import Request
-import commons.constants as constants
+from babel_library.requests.request import Request
+import babel_library.commons.constants as constants
 
 class Delete(Request):
     def __init__(self, req):

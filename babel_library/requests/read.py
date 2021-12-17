@@ -1,7 +1,7 @@
 import os
-from requests.request import Request
-import commons.constants as constants
-from commons.helpers import intTryParse
+from babel_library.requests.request import Request
+import babel_library.commons.constants as constants
+from babel_library.commons.helpers import intTryParse
 
 QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 

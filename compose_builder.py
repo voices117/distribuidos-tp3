@@ -24,7 +24,7 @@ x-base-storage-worker: &base-storage-worker
     build:
       context: .
       dockerfile: storage.Dockerfile
-    command: python3.9 /app/babel_library/main.py
+    command: python3.9 /app/storage_main.py
     volumes:
         - ./:/app
     networks:

@@ -1,9 +1,9 @@
 import os
-from requests.prepare import Prepare
-from requests.commit import Commit
-from commons.communication import send_request_to
-import commons.constants as constants
-from commons.helpers import intTryParse
+from babel_library.requests.prepare import Prepare
+from babel_library.requests.commit import Commit
+from babel_library.commons.communication import send_request_to
+import babel_library.commons.constants as constants
+from babel_library.commons.helpers import intTryParse
 from functools import reduce
 
 QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
@@ -44,6 +44,7 @@ class Request:
         ready_received = len(list(filter(lambda r: r["status"] == constants.READY, responses)))
         if ready_received >= QUORUM - 1:
             # TODO: Save Request commit to rabbit
+            
             
             # Send the commit message
             for sibling in siblings:

@@ -1,9 +1,9 @@
 import babel_library.commons.constants as constants
 
 class Commit():
-    def __init__(self, req):
+    def __init__(self, id):
         self.type = constants.COMMIT_REQUEST
-        self.id = req["id"]
+        self.id = id
         
     def execute(self, librarian, siblings):
         return librarian.execute_prepared_request(self.id)

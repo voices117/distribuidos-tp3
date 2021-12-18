@@ -30,7 +30,7 @@ class Librarian:
         self.sock = Socket()
         self.prepared_requests = {}
         client = self.sock.listen(MAX_QUEUE_SIZE, PORT)
-        self.init_failsafe_storage()
+        #self.init_failsafe_storage()
         print(f"Librarian listening on port {PORT}.")
         
         # Main loop
@@ -45,6 +45,11 @@ class Librarian:
         self.connection = middleware.connect(RABBITMQ_ADDRESS)
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue=f'storage_{WORKER_ID}')
+
+    def save_action(self, req):
+        self.channel.basic_publish(exchange='',
+                      routing_key=f'storage_{WORKER_ID}',
+                      body=json.dumps(req.to_dictionary()))
 
     def handle(self, request):
         """Saves/Reads the request to/from it's own storage,
@@ -62,15 +67,10 @@ class Librarian:
         elif request["type"] == constants.PREPARE_REQUEST:
             return Prepare(request)
         elif request["type"] == constants.COMMIT_REQUEST:
-            return Commit(request)
+            return Commit(request["id"])
 
     def prepare_request(self, req):
         self.prepared_requests[req.id] = req.request
-
-    # def save_action(self, req):
-    #     self.channel.basic_publish(exchange='',
-    #                   routing_key=f'storage_{WORKER_ID}',
-    #                   body=json.dumps(req.to_dictionary()))
 
     def execute_prepared_request(self, id):
         if id in self.prepared_requests:

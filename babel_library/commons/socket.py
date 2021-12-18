@@ -53,3 +53,6 @@ class Socket:
                 end = True
 
         return data
+
+    def set_timeout(self, timeout):
+        self.s.settimeout(timeout)

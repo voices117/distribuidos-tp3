@@ -10,7 +10,7 @@ import random
 LIBRARIANS = [
     {
         "id": 1,
-        "name": "173.150.125.3",
+        "name": "173.150.125.2",
         "port": 5000
     }
 ]
@@ -58,7 +58,7 @@ class Borges:
                 print(err)
                 self.repick_provider()
 
-        return { "status": constants.CLIENT_ERROR_STATUS, "message": "Error saving" }
+        return { "status": constants.CLIENT_ERROR_STATUS, "message": "Error reading" }
 
 
     def delete(self, client, stream):
@@ -75,4 +75,4 @@ class Borges:
                 print(err)
                 self.repick_provider()
 
-        return { "status": constants.CLIENT_ERROR_STATUS, "message": "Error saving" }
+        return { "status": constants.CLIENT_ERROR_STATUS, "message": "Error deleting" }

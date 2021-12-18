@@ -14,8 +14,7 @@ class Library:
             with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', "r") as file:
                 payload = file.read()
         except Exception as error:
-            print(error)
-            raise { "status": constants.ERROR_STATUS, "message": "Error reading."}
+            raise str(error)
 
         return payload
 
@@ -23,8 +22,7 @@ class Library:
         try: 
             Path(f'./data_{WORKER_ID}/{request.client}').mkdir(parents=True, exist_ok=True)
         except Exception as error:
-            print(error)
-            raise { "status": constants.ERROR_STATUS, "message": "Error writing."}
+            raise str(error)
 
         mode = 'a'
         if request.replace:
@@ -34,7 +32,6 @@ class Library:
             file.write(request.payload)
             file.write('\n')
 
-        return { "status": constants.OK_STATUS }
 
     def handle_delete(self, request):
         try:
@@ -42,7 +39,16 @@ class Library:
             if os.path.exists(path):
                 os.remove(path)
         except Exception as error:
-            print(error)
-            raise { "status": constants.ERROR_STATUS, "message": "Error removing."}
-        
-        return { "status": constants.OK_STATUS }
+            raise str(error)
+
+
+    def list_files(self):
+        startpath = f'./data_{WORKER_ID}'
+
+        for root, dirs, files in os.walk(startpath):
+            level = root.replace(startpath, '').count(os.sep)
+            indent = ' ' * 4 * (level)
+            print('{}{}/'.format(indent, os.path.basename(root)))
+            subindent = ' ' * 4 * (level + 1)
+            for f in files:
+                print('{}{}'.format(subindent, f))

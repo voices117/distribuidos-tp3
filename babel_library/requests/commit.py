@@ -5,7 +5,7 @@ class Commit():
         self.type = constants.COMMIT_REQUEST
         self.id = id
         
-    def execute(self, librarian, siblings):
+    def execute(self, librarian):
         return librarian.execute_prepared_request(self.id)
 
     def to_dictionary(self):

@@ -9,14 +9,15 @@ class Delete(Request):
         self.stream = req["stream"]
 
     def handle_internal(self, library):
-        return library.handle_delete(self)
+        library.handle_delete(self)
+        return { "status": constants.OK_STATUS }
 
-    def execute(self, librarian, siblings):
+    def execute(self, librarian):
 
         if not self.immediately:
-            self.handle_two_phase_commit(librarian, siblings)
+            self.handle_two_phase_commit()
 
-        return super().execute(librarian, siblings) 
+        return self.handle_internal(librarian.library)
 
     def to_dictionary(self):
         return {

@@ -1,4 +1,5 @@
 import os
+from babel_library.gatherer import Gatherer
 from babel_library.requests.prepare import Prepare
 from babel_library.requests.commit import Commit
 from babel_library.commons.communication import send_request_to
@@ -15,40 +16,20 @@ class Request:
             self.immediately = True
         else:
             self.immediately = False
+        self.gatherer = Gatherer()
 
-    def execute(self, librarian, siblings):
-        try:
-            return self.handle_internal(librarian.library)
-        except Exception as err:
-            raise { "status": constants.ERROR_STATUS, "message": err }
-            
-
-    def handle_internal(self):
-        pass
-
-    def handle_two_phase_commit(self, librarian, siblings):
+    def handle_two_phase_commit(self):
         responses = []
 
         # Send the PREPARE message with the payload
         prepare = Prepare(self.to_dictionary())
-        for sibling in siblings:
-            try:
-                res = librarian.dispatch(prepare, sibling)
-                responses.append(res)
-            except Exception as e:
-                responses.append(e)
-                print('Error dispatching prepare', e)
+        responses = self.gatherer.gather(prepare)
 
         # If I have quorum
         ready_received = len(list(filter(lambda r: r["status"] == constants.READY, responses)))
         if ready_received >= QUORUM - 1:
             commit = Commit(prepare.id)
-            # Send the commit message
-            for sibling in siblings:
-                try:
-                    res = librarian.dispatch(commit, sibling)
-                except Exception as e:
-                    print('Error dispatching commit', e)
+            responses = self.gatherer.gather(commit)
 
         return responses
 

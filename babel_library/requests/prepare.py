@@ -12,7 +12,7 @@ class Prepare():
             self.id = str(uuid.uuid1())
             self.request = req
 
-    def execute(self, librarian, siblings):
+    def execute(self, librarian):
         librarian.prepare_request(self)
         return { "status": constants.READY }
 

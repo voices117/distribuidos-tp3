@@ -10,17 +10,18 @@ class Write(Request):
         self.payload = req["payload"]
         self.replace = req["replace"]
 
-    def execute(self, librarian, siblings):
+    def execute(self, librarian):
 
         if not self.immediately:
-            self.handle_two_phase_commit(librarian, siblings)
+            self.handle_two_phase_commit()
 
         self.immediately = True
-        return super().execute(librarian, siblings) 
+        return self.handle_internal(librarian.library) 
             
 
     def handle_internal(self, library):
-        return library.handle_write(self)
+        library.handle_write(self)
+        return { "status": constants.OK_STATUS }
 
     def to_dictionary(self):
         return {

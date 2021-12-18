@@ -30,6 +30,7 @@ class Librarian:
         self.sock = Socket()
         self.prepared_requests = {}
         client = self.sock.listen(MAX_QUEUE_SIZE, PORT)
+        self.recover()
         #self.init_failsafe_storage()
         print(f"Librarian listening on port {PORT}.")
         
@@ -41,21 +42,12 @@ class Librarian:
             client.send(res)
             client.close()
 
-    def init_failsafe_storage(self):
-        self.connection = middleware.connect(RABBITMQ_ADDRESS)
-        self.channel = self.connection.channel()
-        self.channel.queue_declare(queue=f'storage_{WORKER_ID}')
-
-    def save_action(self, req):
-        self.channel.basic_publish(exchange='',
-                      routing_key=f'storage_{WORKER_ID}',
-                      body=json.dumps(req.to_dictionary()))
 
     def handle(self, request):
         """Saves/Reads the request to/from it's own storage,
          and dispatches the requests to the other librarians to get quorum"""
         req = self.parse(request)
-        return req.execute(self, siblings)
+        return req.execute(self)
         
     def parse(self, request):
         if request["type"] == constants.READ_REQUEST:
@@ -93,16 +85,22 @@ class Librarian:
 
         for sibling in siblings:
             try:
-                self.dispatch(req, sibling)
+                return send_request_to(sibling["name"], sibling["port"], req.to_dictionary(), TIMEOUT)
             except Exception as e:
                 print('Error dispatching prepare', e)
 
 
-    def dispatch(self, req, sibling):
-        """Dispatches the request to siblings to save/read to/from their storage"""
-        try:
-            res = send_request_to(sibling["name"], sibling["port"], req.to_dictionary(), TIMEOUT)
-        except Exception as err:
-            raise { "status": constants.ERROR_STATUS, "message": err }
-        
-        return res
+
+    def recover(self):
+        pass
+
+
+    def init_failsafe_storage(self):
+        self.connection = middleware.connect(RABBITMQ_ADDRESS)
+        self.channel = self.connection.channel()
+        self.channel.queue_declare(queue=f'storage_{WORKER_ID}')
+
+    def save_action(self, req):
+        self.channel.basic_publish(exchange='',
+                      routing_key=f'storage_{WORKER_ID}',
+                      body=json.dumps(req.to_dictionary()))

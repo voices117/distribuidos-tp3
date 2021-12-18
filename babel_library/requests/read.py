@@ -17,7 +17,10 @@ class Read(Request):
         self.metadata = req.get('metadata')
 
     def handle_internal(self, library):
-        return library.handle_read(self)
+        if self.metadata:
+            return library.list_files()
+        else:
+            return library.handle_read(self)
 
     def execute(self, librarian):
         successCount = 0
@@ -34,7 +37,6 @@ class Read(Request):
 
                 if successCount >= QUORUM:
                     majority_response = self.determineResponse(responses)
-                    #librarian.sync(self, majority_response) #TODO: Do in thread
                     return majority_response
                 else:
                     print("Didn't get quorum")
@@ -63,5 +65,6 @@ class Read(Request):
             "type": self.type,
             "client": self.client,
             "stream": self.stream,
-            "immediately": self.immediately
+            "immediately": self.immediately,
+            "metadata": self.metadata
         }

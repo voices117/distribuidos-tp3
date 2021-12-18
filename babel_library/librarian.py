@@ -8,7 +8,7 @@ from babel_library.requests.read import Read
 from babel_library.library import Library
 from babel_library.commons.socket import Socket
 from babel_library.commons.communication import send_request_to
-from babel_library.commons.helpers import intTryParse
+from babel_library.commons.helpers import intTryParse, tryParse
 import babel_library.commons.constants as constants
 import json
 import middleware
@@ -92,8 +92,22 @@ class Librarian:
 
 
     def recover(self):
-        pass
+        """This method will query all the existing data of the rest of the nodes"""
+        """And then sync with that"""
+        req = Read({
+            "metadata": True
+        })
+        response = req.execute(self) #Recover the file tree
 
+        # Make a read request for each one
+        logs = json.loads(response)
+        for log in logs:
+            print("Retrieving log: ", log)
+            req = Read({ "client": log["client"], "stream": log["stream"] })
+            res = req.execute(self)
+            print(res)
+            req = Write({ "client": log["client"], "stream": log["stream"], "payload": json.dumps(res), "replace": True, "immediately": True })
+            req.execute(self)
 
     def init_failsafe_storage(self):
         self.connection = middleware.connect(RABBITMQ_ADDRESS)

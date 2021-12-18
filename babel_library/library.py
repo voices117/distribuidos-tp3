@@ -2,6 +2,7 @@ import os
 import babel_library.commons.constants as constants
 from pathlib import Path
 from babel_library.commons.helpers import intTryParse
+import json
 
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 
@@ -43,12 +44,15 @@ class Library:
 
 
     def list_files(self):
-        startpath = f'./data_{WORKER_ID}'
+        responses = []
 
-        for root, dirs, files in os.walk(startpath):
-            level = root.replace(startpath, '').count(os.sep)
-            indent = ' ' * 4 * (level)
-            print('{}{}/'.format(indent, os.path.basename(root)))
-            subindent = ' ' * 4 * (level + 1)
-            for f in files:
-                print('{}{}'.format(subindent, f))
+        try:
+            client_directories = os.scandir(f'./data_{WORKER_ID}/')
+            for cd in client_directories:
+                stream_files = os.scandir(f'./data_{WORKER_ID}/{cd.name}')
+                for sd in stream_files:
+                    responses.append({ "client": cd.name, "stream": sd.name })
+        except Exception as err:
+            print("list_files: ", str(err))
+
+        return json.dumps(responses)

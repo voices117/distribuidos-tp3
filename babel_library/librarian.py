@@ -1,12 +1,11 @@
 import os
 import random
-from babel_library.requests.commit import Commit
-from babel_library.requests.prepare import Prepare
 from babel_library.requests.delete import Delete
 from babel_library.requests.write import Write
 from babel_library.requests.read import Read
 from babel_library.library import Library
 from babel_library.commons.socket import Socket
+from babel_library_client.borges import Borges
 from babel_library.commons.communication import send_request_to
 from babel_library.commons.helpers import intTryParse, tryParse
 import babel_library.commons.constants as constants
@@ -30,7 +29,7 @@ class Librarian:
         self.recover()
 
         self.init_input_queue()
-        print(f"Librarian ready.")
+        print(f"Librarian ready...")
 
     def handle(self, ch, method, properties, body):
         """Saves/Reads the request to/from it's own storage,
@@ -43,6 +42,7 @@ class Librarian:
         self.channel.basic_ack(delivery_tag=method.delivery_tag)
         
     def respond(self, response, props):
+        """Return a response to the client that requested it through the queue provided in the request"""
         self.channel.basic_publish(exchange='',
                      routing_key=props.reply_to,
                      properties=pika.BasicProperties(correlation_id = props.correlation_id),
@@ -55,10 +55,6 @@ class Librarian:
             return Write(request)
         elif request["type"] == constants.DELETE_REQUEST:
             return Delete(request)
-        elif request["type"] == constants.PREPARE_REQUEST:
-            return Prepare(request)
-        elif request["type"] == constants.COMMIT_REQUEST:
-            return Commit(request["id"])
     
     def sync(self, request, content):
         """This function is called when a READ happens, it tries to sync all the nodes with the
@@ -82,16 +78,21 @@ class Librarian:
         req = Read({
             "metadata": True
         })
-        logs = req.execute(self) #Recover the file tree
+        client = Borges(5)
+        response = client.execute(req.to_dictionary()) # Recover the file tree
+        print(response)
+        if response["status"] != constants.OK_STATUS:
+            print("Storage node could not recover data")
+            return # TODO: Define what to do here
+
         # Make a read request for each one
-        logs = tryParse(logs)
-        print(logs)
+        logs = tryParse(response["message"])
         for log in logs:
             print("Retrieving log: ", log)
             req = Read({ "client": intTryParse(log["client"]), "stream": intTryParse(log["stream"]) })
-            res = req.execute(self)
-            print(res)
-            req = Write({ "client": log["client"], "stream": log["stream"], "payload": res.rstrip('\n'), "replace": True })
+            res = client.execute(req.to_dictionary())
+            
+            req = Write({ "client": log["client"], "stream": log["stream"], "payload": res["message"].rstrip('\n'), "replace": True })
             req.execute(self)
 
     def init_input_queue(self):

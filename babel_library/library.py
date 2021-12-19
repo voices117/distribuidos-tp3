@@ -11,11 +11,8 @@ class Library:
         pass
 
     def handle_read(self, request):
-        try:
-            with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', "r") as file:
-                payload = file.read()
-        except Exception as error:
-            raise str(error)
+        with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', "r") as file:
+            payload = file.read()
 
         return payload
 
@@ -23,7 +20,7 @@ class Library:
         try: 
             Path(f'./data_{WORKER_ID}/{request.client}').mkdir(parents=True, exist_ok=True)
         except Exception as error:
-            raise str(error)
+            raise Exception(str(error)) 
 
         mode = 'a'
         if request.replace:
@@ -46,13 +43,10 @@ class Library:
     def list_files(self):
         responses = []
 
-        try:
-            client_directories = os.scandir(f'./data_{WORKER_ID}/')
-            for cd in client_directories:
-                stream_files = os.scandir(f'./data_{WORKER_ID}/{cd.name}')
-                for sd in stream_files:
-                    responses.append({ "client": cd.name, "stream": sd.name })
-        except Exception as err:
-            print("list_files: ", str(err))
+        client_directories = os.scandir(f'./data_{WORKER_ID}/')
+        for cd in client_directories:
+            stream_files = os.scandir(f'./data_{WORKER_ID}/{cd.name}')
+            for sd in stream_files:
+                responses.append({ "client": cd.name, "stream": sd.name })
 
         return json.dumps(responses)

@@ -18,10 +18,13 @@ class Read(Request):
 
     def execute(self, librarian):
         print("Executing read: ", self.to_dictionary())
-        if self.metadata:
-            return librarian.library.list_files()
-        else:
-            return librarian.library.handle_read(self)
+        try:
+            if self.metadata:
+                return { "status": constants.OK_STATUS, "message": librarian.library.list_files() }
+            else:
+                return { "status": constants.OK_STATUS, "message": librarian.library.handle_read(self) }
+        except Exception as err:
+            return { "status": constants.ERROR_STATUS, "message": str(err) }
 
     def to_dictionary(self):
         return {

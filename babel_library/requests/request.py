@@ -1,7 +1,5 @@
 import os
 from babel_library.gatherer import Gatherer
-from babel_library.requests.prepare import Prepare
-from babel_library.requests.commit import Commit
 from babel_library.commons.communication import send_request_to
 import babel_library.commons.constants as constants
 from babel_library.commons.helpers import intTryParse

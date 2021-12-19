@@ -1,4 +1,5 @@
 import json
+import uuid
 
 def intTryParse(value):
     try:
@@ -11,3 +12,6 @@ def tryParse(value):
         return json.loads(value)
     except Exception:
         return []
+
+def get_correlation_id():
+    return str(uuid.uuid4())

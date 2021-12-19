@@ -6,9 +6,9 @@ import random
 
 rand = random.randint(0, len(LIBRARIANS))
 
-TIMEOUT = 2 #seconds
+TIMEOUT = 3 #seconds
 client = Borges(TIMEOUT)
 
-#print(client.save(1, 2, "{ id: 1, msg: DONE }", replace=False))
+print(client.save(1, 2, "{ id: 1, msg: DONE }"))
 #print(client.read(1, 2))
-print(client.delete(1,2))
+#print(client.delete(1,2))

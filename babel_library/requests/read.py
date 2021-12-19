@@ -1,75 +1,27 @@
-import os
-from babel_library.requests.request import Request
 import babel_library.commons.constants as constants
 from babel_library.commons.helpers import intTryParse
 
-QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
-
-class Read(Request):
+class Read():
     def __init__(self, req):
-        super().__init__(req)
         self.type = constants.READ_REQUEST
-        self.client = req["client"]
-        self.stream = req["stream"]
+        self.client = req.get("client")
+        self.stream = req.get("stream")
+        self.metadata = req.get('metadata')
 
-
-    def handle_internal(self, library):
-        return library.handle_read(self)
-
-    def execute(self, librarian, siblings):
-        responses = []
-        successCount = 0
-        
-        res = super().execute(librarian, siblings) 
-        successCount+=1
-        responses.append(res)
-
-        if not self.immediately:
-            (responses, successCount) = self.handle_read_propagation(librarian, siblings)
-
-            if successCount >= QUORUM:
-                majority_response = self.determineResponse(responses)
-                librarian.sync(self, majority_response) #TODO: Do in thread
-                return majority_response
+    def execute(self, librarian):
+        print("Executing read: ", self.to_dictionary())
+        try:
+            if self.metadata:
+                return { "status": constants.OK_STATUS, "message": librarian.library.list_files() }
             else:
-                print("Didn't get quorum")
-                return { "status": constants.ERROR_STATUS }
-        else:
-            return res
-
-
-    def handle_read_propagation(self, librarian, siblings):
-        responses = []
-        # Send the read request to siblings
-        successCount = 0
-        self.immediately = True
-        for sibling in siblings:
-            try:
-                res = librarian.dispatch(self, sibling)
-                responses.append(res)
-                successCount += 1
-            except Exception as e:
-                print('error dispatching', e)
-
-        return (responses, successCount)
-
-
-    def determineResponse(self, responses):
-        """Returns the most frecuent response"""
-        dict = {}
-        count, itm = 0, ''
-        for item in responses:
-            res = str(item)
-
-            dict[res] = dict.get(res, 0) + 1
-            if dict[res] >= count:
-                count, itm = dict[res], item
-        return itm
+                return { "status": constants.OK_STATUS, "message": librarian.library.handle_read(self) }
+        except Exception as err:
+            return { "status": constants.ERROR_STATUS, "message": str(err) }
 
     def to_dictionary(self):
         return {
             "type": self.type,
             "client": self.client,
             "stream": self.stream,
-            "immediately": self.immediately
+            "metadata": self.metadata
         }

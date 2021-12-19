@@ -7,6 +7,8 @@ from signal import signal, SIGTERM
 
 from bullyAlgorithm import Bully
 
+OK = 0
+
 class sauronEye:
     
     def __init__(self) -> None:
@@ -21,16 +23,12 @@ class sauronEye:
         logging.basicConfig(level=logging.INFO)
         signal(SIGTERM, self.__handler)
 
-    def bringBackToLife(self, containerName):
-        return
-        #result = subprocess.run(['docker', 'stop', containerName], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        #logging.info('Command executed. Result={}. Output={}. Error={}'.format(result.returncode, result.stdout, result.stderr)) 
+    def _bringBackToLife(self, containerName):
         
-        #result = subprocess.run(['docker', 'start', containerName], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        #logging.info('Command executed. Result={}. Output={}. Error={}'.format(result.returncode, result.stdout, result.stderr))    
-    
-    def get(self):
-        return self.Bully.get()
+        result = subprocess.run(['docker', 'start', containerName], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logging.info('Command executed. Result={}. Output={}. Error={}'.format(result.returncode, result.stdout, result.stderr))    
+        
+        return result.returncode
 
     def __handler(self, signal_received, frame):
         # SIGTERM handler
@@ -40,25 +38,28 @@ class sauronEye:
         self.running = False
 
     def loop(self):
-        print('Checking nodes status')
+        logging.info('Checking nodes status')
         for container, addr in self.Nodes.items():
             if not self.running or not self.Bully.amICoordinator():
-                # me mataron o revivi al master
+                # someone killed me or revived the leader
                 return
             try:
                 response = requests.get(url=addr + '/status', timeout=self.timeout)
                 if response.status_code != requests.codes.ok:
-                    self.bringBackToLife(container)
-                    print("nodo died_1")
-                print("nodo is alive")    
+                    if self._bringBackToLife(container) == OK:
+                        logging.info(f'node {container} has been restored')
+                    else:
+                        logging.info(f'an error occurred trying to restore {container}') 
             except:
-                self.bringBackToLife(container)
-                print("nodo died_2")
+                if self._bringBackToLife(container) == OK:
+                    logging.info(f'node {container} has been restored')
+                else:
+                    logging.info(f'an error occurred trying to restore {container}')    
 
     def run(self):
         while self.running:
             if not self.Bully.amICoordinator():
-                print('slave node')
+                logging.info('slave node')
             else:
                 self.loop()
             time.sleep(10) 

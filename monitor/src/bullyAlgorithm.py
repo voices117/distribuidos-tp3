@@ -1,4 +1,5 @@
 import json
+import logging
 import requests
 from threading import Lock, Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -18,16 +19,19 @@ class Bully(Thread):
         self.coordinatorId = UNKNOWN_LIDER_ID
         self.timeout = config['timeout']
         self.coordinator = False
-        self.server = webServer(config['addr'], int(config['port']))
+        self.addr = config['addr']
+        self.port = int(config['port'])
+        self.server = webServer(self.addr, self.port)
         self.lock = Lock()
         self.running = True
         
+        logging.basicConfig(level=logging.INFO)
         self._printConfig()
         self.server.start()
         Thread.__init__(self)
     
     def _printConfig(self):
-        print(f'Nodo: {self.Id}, coodinator: {self.coordinatorId}, Timeout: {self.timeout}, Highers: {self.Highers}')
+        logging.info(f'Nodo: {self.Id}, Timeout: {self.timeout}, WebServer: {self.addr}:{self.port}')
 
     def _getHighers(self):
         highers = {}
@@ -49,7 +53,6 @@ class Bully(Thread):
         self.running = False
 
     def coordinatorIsAlive(self):
-        print("here 3")
         if self.coordinatorId == UNKNOWN_LIDER_ID:
             #waiting for new coordinator coordinator message
             return True
@@ -62,28 +65,26 @@ class Bully(Thread):
             return False
 
     def _startElection(self):
-        print(f'[nodo: {self.Id}] Starting new election')
+        logging.info(f'[nodo: {self.Id}] Starting new election')
         self.lock.acquire()
         higherId = -1
         for id, addr in self.Highers.items():
-            print(f'me voy a comunicar con {addr}')
             try:
                 r = requests.post(url=addr+'/election', data={'id': ELECTION_SIGNAL})
-                print(f'estado del request a {addr}: {r.status_code}')
                 if r.status_code == requests.codes.ok:
                     higherId = id
             except:
                 continue
         if higherId == -1:
             #I am the new coordinator
-            print(f'[nodo: {self.Id}] I am the new coordinator')
+            logging.info(f'[nodo: {self.Id}] I am the new coordinator')
             self._postNewLider()
             self.coordinatorId = self.Id
             self.coordinator = True
         else:
             self.coordinatorId = UNKNOWN_LIDER_ID
         self.lock.release()    
-        print(f'[nodo: {self.Id}] Ending election')
+        logging.info(f'[nodo: {self.Id}] Ending election')
 
     def amICoordinator(self):
         with self.lock:
@@ -94,7 +95,7 @@ class Bully(Thread):
             try:
                 requests.post(url=addr+'/coordinator', json={'id': self.Id})
             except:
-                print(f'cant establish comunication with {addr}')
+                logging.info(f'[nodo: {self.Id}] cant establish comunication with {addr}')
 
     def run(self):
         i = 0
@@ -104,7 +105,7 @@ class Bully(Thread):
                 self.Initilize = True
             else:
                 if not self.server.emptyInbox():
-                    print("here 1")
+                    logging.info(f'[nodo: {self.Id}] a message has arrived')
                     message = self.server.getMessage()
                     if  message == ELECTION_SIGNAL:
                         self._startElection()
@@ -114,21 +115,21 @@ class Bully(Thread):
                         self.coordinator = False
                         self.lock.release()
                 elif self.coordinator:
-                    print("here 2")
+                    logging.info(f'[nodo: {self.Id}] i am the leader')
                     time.sleep(2)
                     if i%5 == 0:
                         self._postNewLider()
                     i+=1
                     continue
                 elif self.coordinatorIsAlive():
-                    print(f'[nodo: {self.Id}] Coordinator {self.coordinatorId} alive')
+                    logging.info(f'[nodo: {self.Id}] coordinator {self.coordinatorId} alive')
                     time.sleep(2.0)
                     continue
                 else:
-                    print("here 4")
+                    logging.info(f'[nodo: {self.Id}] the leader has died')
                     self._startElection()
         
-        print("Closing Bully Algorith")         
+        logging.info(f'[nodo: {self.Id}] closing Bully Algorith')         
 
 class webServer(Thread):    
     def __init__(self, serverAddress, port):
@@ -150,14 +151,14 @@ class webServer(Thread):
 
     def closeServer(self):
         self.server.shutdown()
-        print(time.asctime(), "Server Stops - %s:%s" % (self.serverAddress, self.port))    
+        logging.info(f'{time.asctime()} server Stops - {self.serverAddress} {self.port}')    
 
     def run(self):
         server_class = HTTPServer
         self.server = server_class((self.serverAddress, self.port), make_handler(self.output))
-        print(time.asctime(), "Server Starts - %s:%s" % (self.serverAddress, self.port))
+        logging.info(f'{time.asctime()} server starts - {self.serverAddress} {self.port}')
         self.server.serve_forever()
-        print("exiting from run server")
+        logging.info("exiting from run server")
 
 def make_handler(output):
 
@@ -169,29 +170,30 @@ def make_handler(output):
 
         def do_GET(s):
             """Respond to a GET request."""
-            print(s.path)
             if '/status' in s.path:
+                #logging.info(f'[HTTP server] a status message arrived')
                 s.send_response(200)
                 s.send_header("Content-type", "application/json")
                 s.end_headers()
                 s.wfile.write(json.dumps({}).encode())
 
         def do_POST(s):
+            """Respond to a POST request."""
             if '/election' in s.path:
                 output.put(ELECTION_SIGNAL)
-                print("me llego un mensaje election")
+                logging.info("[HTTP server] an election message arrived")
                 s.send_response(200)
                 s.send_header("Content-type", "application/json")
                 s.end_headers()
                 s.wfile.write(json.dumps({}).encode())
 
             if '/coordinator' in s.path:
-                print("me llego un mensaje coordinator")
+                logging.info("[HTTP server] a coordinator message arrived")
                 ctype, pdict = cgi.parse_header(s.headers.get_content_type())
                 if ctype == 'application/json':
                     length = int(s.headers.get('content-length'))
                     message = json.loads(s.rfile.read(length))
-                    print('Recibi ', message)
+                    logging.info(f'recibi: {message}')
                     output.put(message['id'])
                     s.send_response(200)
                     s.send_header("Content-type", "application/json")

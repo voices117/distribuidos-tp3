@@ -85,8 +85,11 @@ def calculate_percentage_callback(channel:BlockingChannel, worker_id:str):
     # consumes all input packages until done
     for correlation_id, body in consume_from(channel, 'calculate_percentage', remove_duplicates=True):
         if isinstance(body, END_OF_STREAM):
-            p = final_count_negative[correlation_id] / final_count_total[correlation_id]
-            print('>>> percentage of answers with score > 10 and negative S.A. is', p)
+            if final_count_total[correlation_id] > 0:
+                p = final_count_negative[correlation_id] / final_count_total[correlation_id]
+                print('      >>> percentage of answers with score > 10 and negative S.A. is', p)
+            else:
+                print('      >>> total count is zero')
 
             final_count_total.pop(correlation_id, None)
             final_count_negative.pop(correlation_id, None)

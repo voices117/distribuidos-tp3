@@ -65,11 +65,12 @@ Para ejecutar el cliente primero es necesario generar la imagen de Docker. Luego
 
  1. `LINES_PER_CHUNK`: cantidad de líneas por chunk que se envía al pipeline.
  2. `NUM_CHUNKS`: cantidad de chunks de cada archivo a enviar. De ser un valor negativo, se envía el archivo completo.
+ 3. `CORRELATION_ID`: fuerza a utilizar el ID de request indicado.
 
 
 ```shell
 make image
-LINES_PER_CHUNK=1000 NUM_CHUNKS=100 make client
+LINES_PER_CHUNK=1000 NUM_CHUNKS=100 CORRELATION_ID=1234 make client
 ```
 
 ## Middleware

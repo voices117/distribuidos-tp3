@@ -130,3 +130,11 @@ dmypy.json
 
 data/*
 docker-compose.yml
+
+tmp
+tmp/*
+logs
+logs/*
+
+.vscode
+.vscode/*

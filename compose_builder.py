@@ -66,6 +66,7 @@ STORAGE_SERVICE_TEMPLATE = """
         environment:
             <<: *common-env-variables
             WORKER_ID: {worker_id}
+            WORKER_TASK: 'storage'
             TIMEOUT: {timeout}
             MAX_QUEUE_SIZE: {max_queue_size}
             PORT: {port}

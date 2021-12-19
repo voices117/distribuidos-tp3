@@ -55,7 +55,7 @@ class Librarian:
         req = Read({
             "metadata": True
         })
-        client = Borges(5)
+        client = Borges()
         response = client.execute(req.to_dictionary()) # Recover the file tree
         print(response)
         if response["status"] != constants.OK_STATUS:

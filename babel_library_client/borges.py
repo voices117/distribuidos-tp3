@@ -1,4 +1,5 @@
 import time
+import datetime
 import pika
 import os
 import json
@@ -9,7 +10,7 @@ import middleware
 RABBITMQ_ADDRESS = os.environ.get('RABBITMQ_ADDRESS') or 'localhost'
 
 class Borges:
-    def __init__(self, timeout=2):
+    def __init__(self, timeout=3):
         self.timeout = timeout
         self.responses = {}
         self.init_rabbit()
@@ -44,7 +45,22 @@ class Borges:
 
     def on_response(self, ch, method, props, body):
         corr_id = props.correlation_id
-        self.responses[corr_id] = tryParse(body)
+
+        res = tryParse(body)
+        res["timetolive"] = datetime.datetime.utcnow() + datetime.timedelta(seconds=5) # The entry will clear itself after this time
+        self.responses[corr_id] = res
+
+        self.clear_responses()
+
+    def clear_responses(self):
+        toremove = []
+        currenttime = datetime.datetime.utcnow()
+        for key, value in self.responses.items():
+            if value["timetolive"] < currenttime:
+                toremove.append(key)
+
+        for key in toremove:
+            del self.responses[key]
 
     def save(self, client, stream, payload):
         req = {

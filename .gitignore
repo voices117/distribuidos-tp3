@@ -138,3 +138,9 @@ logs/*
 
 .vscode
 .vscode/*
+
+.gitconfig
+
+*/data/*
+*/data_*
+data_*

@@ -23,7 +23,7 @@ def _serialize_chunk(header:List[str], chunk:List[str]):
 def _read_lines(reader:csv.reader, n:int) -> List[str]:
     """Reads `n` lines from the CSV reader."""
 
-    lines = []
+    lines:List[str] = []
     for i, line in enumerate(reader):
         lines.append(line)
         if i == n - 1:
@@ -54,7 +54,7 @@ def read_file_by_chunks(file_name:str, lines:int, chunks:int = -1):
             read_chunks += 1
 
 
-def upload_csv(routing_key:str, file_name:str, lines:int, chunks:int):
+def upload_csv(routing_key:str, file_name:str, lines:int, chunks:int, correlation_id:str):
     """Sends a CSV file as chunks through a rabbit MQ exchange. The CSV header
     is repeated on each chunk."""
 
@@ -65,9 +65,9 @@ def upload_csv(routing_key:str, file_name:str, lines:int, chunks:int):
         for i, chunk in enumerate(read_file_by_chunks(file_name=file_name, lines=lines, chunks=chunks)):
             print(f'sending chunk {i}   ', end='\r')
 
-            middleware.send_data(chunk, channel=channel, worker=routing_key)
+            middleware.send_data(chunk.encode('utf-8'), channel=channel, worker=routing_key, correlation_id=correlation_id)
 
-        middleware.send_done(channel=channel, worker=routing_key)
+        middleware.send_done(channel=channel, worker=routing_key, correlation_id=correlation_id)
     finally:
         channel.close()
         connection.close()
@@ -78,13 +78,15 @@ if __name__ == '__main__':
 
     LINES_PER_CHUNK = int(os.environ.get('LINES_PER_CHUNK', 1000))
     NUM_CHUNKS = int(os.environ.get('NUM_CHUNKS', -1))
+    CORRELATION_ID = os.environ.get('CORRELATION_ID')  # TODO: get this from the service
 
     def upload_answers():
         upload_csv(
             routing_key='answers_csv_parser',
             file_name='data/answers.csv',
             lines=LINES_PER_CHUNK,
-            chunks=NUM_CHUNKS
+            chunks=NUM_CHUNKS,
+            correlation_id=CORRELATION_ID
         )
 
     def upload_questions():
@@ -92,7 +94,8 @@ if __name__ == '__main__':
             routing_key='questions_csv_parser',
             file_name='data/questions.csv',
             lines=LINES_PER_CHUNK,
-            chunks=NUM_CHUNKS
+            chunks=NUM_CHUNKS,
+            correlation_id=CORRELATION_ID
         )
 
     t1 = threading.Thread(target=upload_questions)

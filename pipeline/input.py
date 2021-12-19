@@ -9,27 +9,30 @@ import service_config
 
 from io import StringIO
 from typing import List
-from middleware import consume_from, send_data, as_worker
+from middleware import END_OF_STREAM, consume_from, send_data, as_worker, USE_HASH
 from pika.adapters.blocking_connection import BlockingChannel
 
 
 @as_worker
-def answers_csv_parser_callback(channel:BlockingChannel):
+def answers_csv_parser_callback(channel:BlockingChannel, worker_id:str):
     """Parses CSV chunks of answers and sends the relevant columns of each row
     to the next stages of the pipeline."""
 
-    # questions and answers related to them must be sent to the same "join"
-    # worker. That is why we use the Id as the sharding key
-    sharded_data = [list() for _ in range(service_config.WORKERS['join'])]
+    for correlation_id, body in consume_from(channel, 'answers_csv_parser'):
+        if isinstance(body, END_OF_STREAM):
+            continue
 
-    for _, _, body in consume_from(channel, 'answers_csv_parser'):
+        # questions and answers related to them must be sent to the same "join"
+        # worker. That is why we use the Id as the sharding key
+        sharded_data = [list() for _ in range(service_config.WORKERS['join'])]
+
         rows = _csv_parse(body)
 
-        data = json.dumps(_select_cols(rows, ['OwnerUserId', 'Score']))
-        send_data(data, channel=channel, worker='score_by_user', id='answers')
+        data = json.dumps({'answers': _select_cols(rows, ['OwnerUserId', 'Score'])})
+        send_data(data, channel=channel, worker='score_by_user', correlation_id=correlation_id, shard_key=USE_HASH)
 
-        data = json.dumps(_select_cols(rows, ['Body', 'Score']))
-        send_data(data, channel=channel, worker='filter_by_score', id='answers')
+        data = json.dumps({'answers': _select_cols(rows, ['Body', 'Score'])})
+        send_data(data, channel=channel, worker='filter_by_score', correlation_id=correlation_id)
 
         # collect batches of rows to join to avoid sending too many messages
         for row in _select_cols(rows, ['ParentId', 'CreationDate', 'Score']):
@@ -38,27 +41,27 @@ def answers_csv_parser_callback(channel:BlockingChannel):
 
         # regularly flushes data to avoid chunks from getting too big
         for shard, data in enumerate(sharded_data):
-            if len(data) > len(rows) / 2:
-                send_data(json.dumps(data), channel=channel, worker='join', id='answers', shard_key=str(shard))
-
-    # flush remaining data
-    for shard, data in enumerate(sharded_data):
-        if data:
-            send_data(json.dumps(data), channel=channel, worker='join', id='answers', shard_key=str(shard))
+            if data:
+                send_data(json.dumps({'answers': data}), channel=channel, worker='join', shard_key=shard, correlation_id=correlation_id)
 
 
 @as_worker
-def questions_csv_parser_callback(channel:BlockingChannel):
+def questions_csv_parser_callback(channel:BlockingChannel, worker_id:str):
     """Parses CSV chunks of questions and sends the relevant columns of each
     row to the next stages of the pipeline."""
 
-    sharded_data = [list() for _ in range(service_config.WORKERS['join'])]
 
-    for _, _, body in consume_from(channel, 'questions_csv_parser'):
+    for correlation_id, body in consume_from(channel, 'questions_csv_parser'):
+        if isinstance(body, END_OF_STREAM):
+            continue
+
+        sharded_data = [list() for _ in range(service_config.WORKERS['join'])]
+
         rows = _csv_parse(body=body)
 
         data = _select_cols(rows, ['OwnerUserId', 'Score'])
-        send_data(json.dumps(data), channel=channel, worker='score_by_user', id='questions')
+        json_data = json.dumps({'questions': data})
+        send_data(json_data, channel=channel, worker='score_by_user', correlation_id=correlation_id, shard_key=USE_HASH)
 
         # collect batches of rows to join to avoid sending too many messages
         for row in _select_cols(rows, ['Id', 'Tags', 'Score', 'CreationDate']):
@@ -66,13 +69,8 @@ def questions_csv_parser_callback(channel:BlockingChannel):
             sharded_data[shard].append(row)
 
         for shard, data in enumerate(sharded_data):
-            if len(data) > len(rows) / 2:
-                send_data(json.dumps(data), channel=channel, worker='join', id='questions', shard_key=str(shard))
-
-    # flush remaining data
-    for shard, data in enumerate(sharded_data):
-        if data:
-            send_data(json.dumps(data), channel=channel, worker='join', id='questions', shard_key=str(shard))
+            if data:
+                send_data(json.dumps({'questions': data}), channel=channel, worker='join', shard_key=shard, correlation_id=correlation_id)
 
 
 def _csv_parse(body:bytes):

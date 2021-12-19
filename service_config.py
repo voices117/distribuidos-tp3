@@ -3,6 +3,9 @@ This file defines the pipeline's DAG and the number of workers to process each
 stage.
 """
 
+from typing import Dict, List
+
+
 # indicates the number of nodes on each stage
 # this is used by `compose_builder.py` to define how many services to create
 WORKERS = {
@@ -31,7 +34,7 @@ WORKERS = {
 
 # adjacency list representing the DAG. This is required so each worker knows
 # how many workers are on the other stages to receive and send DONE messages.
-NEXT_TASK = {
+NEXT_TASK:Dict[str, List[str]] = {
     'client_answers': ['answers_csv_parser'],
     'client_questions': ['questions_csv_parser'],
 
@@ -59,4 +62,9 @@ NEXT_TASK = {
 # each node processes all instances that share a common key).
 SHARDED = [
     'join',
+    'calculate_percentage',
+    'filter_top_10_by_score',
+    'score_by_user',
+    'score_by_tag_and_year',
+    'top_10_tags',
 ]

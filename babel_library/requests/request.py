@@ -12,26 +12,7 @@ TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
 
 class Request:
     def __init__(self, req):
-        if "immediately" in req and req["immediately"] == True:
-            self.immediately = True
-        else:
-            self.immediately = False
         self.gatherer = Gatherer()
-
-    def handle_two_phase_commit(self):
-        responses = []
-
-        # Send the PREPARE message with the payload
-        prepare = Prepare(self.to_dictionary())
-        responses = self.gatherer.gather(prepare)
-
-        # If I have quorum
-        ready_received = len(list(filter(lambda r: r["status"] == constants.READY, responses)))
-        if ready_received >= QUORUM - 1:
-            commit = Commit(prepare.id)
-            responses = self.gatherer.gather(commit)
-
-        return responses
 
     def to_dictionary(self):
         return {

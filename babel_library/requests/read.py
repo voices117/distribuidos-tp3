@@ -16,36 +16,37 @@ class Read(Request):
         self.stream = req.get("stream")
         self.metadata = req.get('metadata')
 
-    def handle_internal(self, library):
-        if self.metadata:
-            return library.list_files()
-        else:
-            return library.handle_read(self)
-
     def execute(self, librarian):
-        successCount = 0
+        print("Executing read: ", self.to_dictionary())
+        if self.metadata:
+            return librarian.library.list_files()
+        else:
+            return librarian.library.handle_read(self)
+
         
-        try:
-            res = self.handle_internal(librarian.library)
-            successCount+=1
+        # successCount = 0
+        
+        # try:
+        #     res = self.handle_internal(librarian.library)
+        #     successCount+=1
 
-            if not self.immediately:
-                self.immediately = True
-                responses = self.gatherer.gather(self)
-                successCount += len(responses)
-                responses.append(res)
+        #     if not self.immediately:
+        #         self.immediately = True
+        #         responses = self.gatherer.gather(self)
+        #         successCount += len(responses)
+        #         responses.append(res)
 
-                if successCount >= QUORUM:
-                    majority_response = self.determineResponse(responses)
-                    return majority_response
-                else:
-                    print("Didn't get quorum")
-                    return { "status": constants.ERROR_STATUS }
-            else:
-                return res
-        except Exception as err:
-            print(f'Error on read {str(err)}')
-            return { "status": constants.ERROR_STATUS, "message": str(err)}
+        #         if successCount >= QUORUM:
+        #             majority_response = self.determineResponse(responses)
+        #             return majority_response
+        #         else:
+        #             print("Didn't get quorum")
+        #             return { "status": constants.ERROR_STATUS }
+        #     else:
+        #         return res
+        # except Exception as err:
+        #     print(f'Error on read {str(err)}')
+        #     return { "status": constants.ERROR_STATUS, "message": str(err)}
 
 
     def determineResponse(self, responses):
@@ -65,6 +66,5 @@ class Read(Request):
             "type": self.type,
             "client": self.client,
             "stream": self.stream,
-            "immediately": self.immediately,
             "metadata": self.metadata
         }

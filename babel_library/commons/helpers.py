@@ -8,6 +8,6 @@ def intTryParse(value):
 
 def tryParse(value):
     try:
-        return json.load(value)
-    except:
-        return ''
+        return json.loads(value)
+    except Exception:
+        return []

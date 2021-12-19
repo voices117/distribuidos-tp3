@@ -27,28 +27,24 @@ siblings = list(filter(lambda l: l["id"] != WORKER_ID, architecture))
 class Librarian:
     def __init__(self):
         self.library = Library()
-        self.sock = Socket()
-        self.prepared_requests = {}
-        client = self.sock.listen(MAX_QUEUE_SIZE, PORT)
         self.recover()
-        #self.init_failsafe_storage()
-        print(f"Librarian listening on port {PORT}.")
-        
-        # Main loop
-        while True:
-            client = self.sock.attend()
-            req = client.receive()
-            res = self.handle(req)
-            client.send(res)
-            client.close()
 
+        self.init_input_queue()
+        print(f"Librarian ready.")
 
-    def handle(self, request):
+    def handle(self, ch, method, properties, body):
         """Saves/Reads the request to/from it's own storage,
          and dispatches the requests to the other librarians to get quorum"""
+        request = tryParse(body)
         req = self.parse(request)
-        return req.execute(self)
+        res = req.execute(self)
+
+        self.respond(res)
+        self.channel.basic_ack(delivery_tag=method.delivery_tag)
         
+    def respond(self, response):
+        pass
+
     def parse(self, request):
         if request["type"] == constants.READ_REQUEST:
             return Read(request)
@@ -60,17 +56,6 @@ class Librarian:
             return Prepare(request)
         elif request["type"] == constants.COMMIT_REQUEST:
             return Commit(request["id"])
-
-    def prepare_request(self, req):
-        self.prepared_requests[req.id] = req.request
-
-    def execute_prepared_request(self, id):
-        if id in self.prepared_requests:
-            req = self.prepared_requests[id]
-            req["immediately"] = True
-            return self.handle(req)
-
-        return { "status": constants.OK_STATUS }
     
     def sync(self, request, content):
         """This function is called when a READ happens, it tries to sync all the nodes with the
@@ -80,7 +65,6 @@ class Librarian:
             "stream": request.stream,
             "payload": content.rstrip('\n'),
             "replace": True,
-            "immediately": True
         })
 
         for sibling in siblings:
@@ -89,32 +73,34 @@ class Librarian:
             except Exception as e:
                 print('Error dispatching prepare', e)
 
-
-
     def recover(self):
         """This method will query all the existing data of the rest of the nodes"""
         """And then sync with that"""
         req = Read({
             "metadata": True
         })
-        response = req.execute(self) #Recover the file tree
-
+        logs = req.execute(self) #Recover the file tree
         # Make a read request for each one
-        logs = json.loads(response)
+        logs = tryParse(logs)
+        print(logs)
         for log in logs:
             print("Retrieving log: ", log)
-            req = Read({ "client": log["client"], "stream": log["stream"] })
+            req = Read({ "client": intTryParse(log["client"]), "stream": intTryParse(log["stream"]) })
             res = req.execute(self)
             print(res)
-            req = Write({ "client": log["client"], "stream": log["stream"], "payload": json.dumps(res), "replace": True, "immediately": True })
+            req = Write({ "client": log["client"], "stream": log["stream"], "payload": res.rstrip('\n'), "replace": True })
             req.execute(self)
 
-    def init_failsafe_storage(self):
+    def init_input_queue(self):
+        """This method will initialize the input request queue for this worker"""
+        """AUTO_ACK is disabled, since the ack will be given after responding to the request"""
+        """A single fanout exchange will be responsible for delivering the requests to each of the storage nodes"""
         self.connection = middleware.connect(RABBITMQ_ADDRESS)
         self.channel = self.connection.channel()
-        self.channel.queue_declare(queue=f'storage_{WORKER_ID}')
+        self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
+        result = self.channel.queue_declare(queue='', exclusive=True)
+        queue_name = result.method.queue
+        self.channel.queue_bind(exchange='storage', queue=queue_name)
 
-    def save_action(self, req):
-        self.channel.basic_publish(exchange='',
-                      routing_key=f'storage_{WORKER_ID}',
-                      body=json.dumps(req.to_dictionary()))
+        self.channel.basic_consume(queue=queue_name, on_message_callback=self.handle, auto_ack=False)
+        self.channel.start_consuming()

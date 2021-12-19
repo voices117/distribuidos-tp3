@@ -77,16 +77,16 @@ LIBRARIANS=[
         "name": "librarian_3",
         "port": 5002
     },
-    {
-        "id": 4,
-        "name": "librarian_4",
-        "port": 5003
-    },
-    {
-        "id": 5,
-        "name": "librarian_5",
-        "port": 5004
-    }
+    # {
+    #     "id": 4,
+    #     "name": "librarian_4",
+    #     "port": 5003
+    # },
+    # {
+    #     "id": 5,
+    #     "name": "librarian_5",
+    #     "port": 5004
+    # }
 ]
 
 MAX_QUEUE_SIZE=5

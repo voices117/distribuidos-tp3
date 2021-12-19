@@ -13,16 +13,13 @@ class Delete(Request):
         return { "status": constants.OK_STATUS }
 
     def execute(self, librarian):
-
-        if not self.immediately:
-            self.handle_two_phase_commit()
-
-        return self.handle_internal(librarian.library)
+        print("Executing delete: ", self.to_dictionary())
+        librarian.library.handle_delete(self)
+        return { "status": constants.OK_STATUS }
 
     def to_dictionary(self):
         return {
             "type": self.type,
             "client": self.client,
-            "stream": self.stream,
-            "immediately": self.immediately
+            "stream": self.stream
         }

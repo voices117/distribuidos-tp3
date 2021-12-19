@@ -11,17 +11,10 @@ class Write(Request):
         self.replace = req["replace"]
 
     def execute(self, librarian):
-
-        if not self.immediately:
-            self.handle_two_phase_commit()
-
-        self.immediately = True
-        return self.handle_internal(librarian.library) 
-            
-
-    def handle_internal(self, library):
-        library.handle_write(self)
+        print("Executing write: ", self.to_dictionary())
+        librarian.library.handle_write(self)
         return { "status": constants.OK_STATUS }
+            
 
     def to_dictionary(self):
         return {
@@ -29,6 +22,5 @@ class Write(Request):
             "client": self.client,
             "stream": self.stream,
             "payload": self.payload,
-            "replace": self.replace,
-            "immediately": self.immediately
+            "replace": self.replace
         }

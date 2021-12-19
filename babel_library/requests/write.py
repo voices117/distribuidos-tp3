@@ -1,9 +1,7 @@
-from babel_library.requests.request import Request
 import babel_library.commons.constants as constants
 
-class Write(Request):
+class Write():
     def __init__(self, req):
-        super().__init__(req)
         self.type = constants.WRITE_REQUEST
         self.client = req["client"]
         self.stream = req["stream"]

@@ -31,13 +31,13 @@ class Borges:
         corr_id = props.correlation_id
         self.responses[corr_id] = tryParse(body)
 
-    def save(self, client, stream, payload, replace=False):
+    def save(self, client, stream, payload):
         req = {
             "type": constants.WRITE_REQUEST,
             "client": client,
             "stream": stream,
             "payload": payload,
-            "replace": replace
+            "replace": True
         }
         return self.execute(req)
         

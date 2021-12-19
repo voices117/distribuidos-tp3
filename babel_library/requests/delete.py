@@ -1,9 +1,7 @@
-from babel_library.requests.request import Request
 import babel_library.commons.constants as constants
 
-class Delete(Request):
+class Delete():
     def __init__(self, req):
-        super().__init__(req)
         self.type = constants.DELETE_REQUEST
         self.client = req["client"]
         self.stream = req["stream"]

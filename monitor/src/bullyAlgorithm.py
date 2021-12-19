@@ -64,6 +64,20 @@ class Bully(Thread):
         except:
             return False
 
+    def _waitAckSignal(self):
+        timer = 0
+        message = self.server.getAck()
+        while timer != self.timeout:
+            if message:
+                if message != self.Id:
+                    logging.info(f'[nodo: {self.Id}] an error ocurred, id receibed {message}')
+                    return False
+                return True
+            time.sleep(1)
+            timer += 1
+            message = self.server.getAck()
+        return True
+
     def _startElection(self):
         logging.info(f'[nodo: {self.Id}] Starting new election')
         self.lock.acquire()
@@ -77,13 +91,18 @@ class Bully(Thread):
                 continue
         if higherId == -1:
             #I am the new coordinator
-            logging.info(f'[nodo: {self.Id}] I am the new coordinator')
+            logging.info(f'[nodo: {self.Id}] maybe I am the new coordinator')
             self._postNewLider()
-            self.coordinatorId = self.Id
-            self.coordinator = True
+            if self._waitAckSignal():
+                self.coordinatorId = self.Id
+                self.coordinator = True
+                logging.info(f'[nodo: {self.Id}] I am the new coordinator')
+            else:
+                self.coordinatorId = UNKNOWN_LIDER_ID
+                logging.info(f'[nodo: {self.Id}] I am NOT the new coordinator')
         else:
             self.coordinatorId = UNKNOWN_LIDER_ID
-        self.lock.release()    
+        self.lock.release()
         logging.info(f'[nodo: {self.Id}] Ending election')
 
     def amICoordinator(self):
@@ -113,6 +132,13 @@ class Bully(Thread):
                         self.lock.acquire()
                         self.coordinatorId = message
                         self.coordinator = False
+                        if self.coordinator:
+                            try:
+                                coordinatorAddr = self.Nodes[self.coordinatorId]
+                                requests.post(url= coordinatorAddr+'/ack', data={'id': self.coordinatorId})
+                            except:
+                                self.lock.release()
+                                continue 
                         self.lock.release()
                 elif self.coordinator:
                     logging.info(f'[nodo: {self.Id}] i am the leader')
@@ -136,18 +162,31 @@ class webServer(Thread):
         self.serverAddress = serverAddress
         self.port = port
         self.server = None
-        self.output = Queue()
+        self.messageOutput = Queue()
+        self.ackOutput = Queue()
         Thread.__init__(self)
 
+    def _empty(self, queue):
+        return queue.empty()
+
+    def _get(self, queue):
+        if queue.empty():
+            return None
+        value = queue.get()
+        queue.task_done()    
+        return value
+
     def emptyInbox(self):
-        return self.output.empty()
+        return self._empty(self.messageOutput)
+
+    def emptyAck(self):
+        return self._empty(self.ackOutput)
+
+    def getAck(self):
+        return self._get(self.ackOutput)
 
     def getMessage(self):
-        if self.output.empty():
-            return None
-        value = self.output.get()
-        self.output.task_done()    
-        return value
+        return self._get(self.messageOutput)
 
     def closeServer(self):
         self.server.shutdown()
@@ -155,12 +194,12 @@ class webServer(Thread):
 
     def run(self):
         server_class = HTTPServer
-        self.server = server_class((self.serverAddress, self.port), make_handler(self.output))
+        self.server = server_class((self.serverAddress, self.port), make_handler(self.messageOutput, self.ackOutput))
         logging.info(f'{time.asctime()} server starts - {self.serverAddress} {self.port}')
         self.server.serve_forever()
         logging.info("exiting from run server")
 
-def make_handler(output):
+def make_handler(messageOutput, ackOutput):
 
     class MyHandler(BaseHTTPRequestHandler):
         def do_HEAD(s):
@@ -180,7 +219,7 @@ def make_handler(output):
         def do_POST(s):
             """Respond to a POST request."""
             if '/election' in s.path:
-                output.put(ELECTION_SIGNAL)
+                messageOutput.put(ELECTION_SIGNAL)
                 logging.info("[HTTP server] an election message arrived")
                 s.send_response(200)
                 s.send_header("Content-type", "application/json")
@@ -194,9 +233,23 @@ def make_handler(output):
                     length = int(s.headers.get('content-length'))
                     message = json.loads(s.rfile.read(length))
                     logging.info(f'recibi: {message}')
-                    output.put(message['id'])
+                    messageOutput.put(message['id'])
                     s.send_response(200)
                     s.send_header("Content-type", "application/json")
                     s.end_headers()
                     s.wfile.write(json.dumps(message).encode())
+
+            if '/ack' in s.path:
+                logging.info("[HTTP server] an ack message arrived")
+                ctype, pdict = cgi.parse_header(s.headers.get_content_type())
+                if ctype == 'application/json':
+                    length = int(s.headers.get('content-length'))
+                    message = json.loads(s.rfile.read(length))
+                    logging.info(f'recibi: {message}')
+                    ackOutput.put(message['id'])
+                    s.send_response(200)
+                    s.send_header("Content-type", "application/json")
+                    s.end_headers()
+                    s.wfile.write(json.dumps(message).encode())
+
     return MyHandler

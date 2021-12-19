@@ -17,10 +17,10 @@ def get_system_nodes():
     for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
         systemNodes[f'monitor_{monitmonitor_number}'] = f'http://monitor_{monitmonitor_number}:808{monitmonitor_number}'
 
-    #for librarian in LIBRARIANS:
-    #    name = librarian['name']
-    #    port = librarian['port']
-    #    systemNodes[name] = f'http://{name}:{port}'
+    for librarian in LIBRARIANS:
+        name = librarian['name']
+        port = librarian['port']
+        systemNodes[name] = f'http://{name}:{port}'
 
     #for worker_type_name, replicas in WORKERS.items():
     #    for n in range(replicas):

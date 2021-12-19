@@ -39,11 +39,14 @@ class Librarian:
         req = self.parse(request)
         res = req.execute(self)
 
-        self.respond(res)
+        self.respond(res, properties)
         self.channel.basic_ack(delivery_tag=method.delivery_tag)
         
-    def respond(self, response):
-        pass
+    def respond(self, response, props):
+        self.channel.basic_publish(exchange='',
+                     routing_key=props.reply_to,
+                     properties=pika.BasicProperties(correlation_id = props.correlation_id),
+                     body=json.dumps(response))
 
     def parse(self, request):
         if request["type"] == constants.READ_REQUEST:

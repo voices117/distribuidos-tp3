@@ -23,44 +23,6 @@ class Read(Request):
         else:
             return librarian.library.handle_read(self)
 
-        
-        # successCount = 0
-        
-        # try:
-        #     res = self.handle_internal(librarian.library)
-        #     successCount+=1
-
-        #     if not self.immediately:
-        #         self.immediately = True
-        #         responses = self.gatherer.gather(self)
-        #         successCount += len(responses)
-        #         responses.append(res)
-
-        #         if successCount >= QUORUM:
-        #             majority_response = self.determineResponse(responses)
-        #             return majority_response
-        #         else:
-        #             print("Didn't get quorum")
-        #             return { "status": constants.ERROR_STATUS }
-        #     else:
-        #         return res
-        # except Exception as err:
-        #     print(f'Error on read {str(err)}')
-        #     return { "status": constants.ERROR_STATUS, "message": str(err)}
-
-
-    def determineResponse(self, responses):
-        """Returns the most frecuent response"""
-        dict = {}
-        count, itm = 0, ''
-        for item in responses:
-            res = str(item)
-
-            dict[res] = dict.get(res, 0) + 1
-            if dict[res] >= count:
-                count, itm = dict[res], item
-        return itm
-
     def to_dictionary(self):
         return {
             "type": self.type,

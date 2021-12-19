@@ -19,7 +19,10 @@ class Librarian:
         self.library = Library()
         self.recover()
 
-        self.init_input_queue()
+        self.init_rabbit()
+        self.init_action_input_queue()
+        self.init_read_input_queue()
+        self.channel.start_consuming()
         print(f"Librarian ready...")
 
     def handle(self, ch, method, properties, body):
@@ -57,7 +60,7 @@ class Librarian:
         print(response)
         if response["status"] != constants.OK_STATUS:
             print("Storage node could not recover data")
-            return # TODO: Define what to do here
+            return
 
         # Make a read request for each one
         logs = tryParse(response["message"])
@@ -69,16 +72,24 @@ class Librarian:
             req = Write({ "client": log["client"], "stream": log["stream"], "payload": res["message"].rstrip('\n'), "replace": True })
             req.execute(self)
 
-    def init_input_queue(self):
+    def init_rabbit(self):
+        self.connection = middleware.connect(RABBITMQ_ADDRESS)
+        self.channel = self.connection.channel()
+        self.channel.basic_qos(prefetch_count=1)
+
+    def init_action_input_queue(self):
         """This method will initialize the input request queue for this worker"""
         """AUTO_ACK is disabled, since the ack will be given after responding to the request"""
         """A single fanout exchange will be responsible for delivering the requests to each of the storage nodes"""
-        self.connection = middleware.connect(RABBITMQ_ADDRESS)
-        self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
         result = self.channel.queue_declare(queue='', exclusive=True)
         queue_name = result.method.queue
         self.channel.queue_bind(exchange='storage', queue=queue_name)
 
         self.channel.basic_consume(queue=queue_name, on_message_callback=self.handle, auto_ack=False)
-        self.channel.start_consuming()
+        
+
+    def init_read_input_queue(self):
+        self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
+        self.channel.queue_declare(queue='reads_queue', durable=True)
+        self.channel.basic_consume(queue='reads_queue', on_message_callback=self.handle, auto_ack=False)

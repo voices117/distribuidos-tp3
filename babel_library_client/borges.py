@@ -12,13 +12,17 @@ class Borges:
     def __init__(self, timeout=2):
         self.timeout = timeout
         self.responses = {}
-        self.init_storage_queues()
-        
-    def init_storage_queues(self):
+        self.init_rabbit()
+        self.init_callback_queue()
+        self.init_read_storage_queues()
+        self.init_action_storage_queues()
+
+    def init_rabbit(self):
         self.connection = middleware.connect(RABBITMQ_ADDRESS)
         self.channel = self.connection.channel()
-        self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
-
+        self.channel.basic_qos(prefetch_count=1)
+        
+    def init_callback_queue(self):
         result = self.channel.queue_declare(queue='', exclusive=True)
         self.callback_queue = result.method.queue
 
@@ -26,6 +30,17 @@ class Borges:
             queue=self.callback_queue,
             on_message_callback=self.on_response,
             auto_ack=True)
+
+    def init_action_storage_queues(self):
+        """This will initialize the exchange and queue that the client will use to send request to and receive responses
+        from the storage servers for the WRITE and DELETE requests"""
+        self.channel.exchange_declare(exchange='storage_actions', exchange_type='fanout')
+
+    def init_read_storage_queues(self):
+        """This will initialize the exchange and queue that the client will use to send request to and receive responses
+        from the storage server for the READ request"""
+        self.channel.queue_declare(queue='reads_queue', durable=True)
+
 
     def on_response(self, ch, method, props, body):
         corr_id = props.correlation_id
@@ -61,9 +76,15 @@ class Borges:
 
     def execute(self, req):
         corr_id = get_correlation_id()
-        self.channel.basic_publish(exchange='storage', routing_key='', body=json.dumps(req),
-            properties=pika.BasicProperties(reply_to=self.callback_queue, correlation_id=corr_id)
-        )
+
+        if req["type"] == constants.READ_REQUEST:
+            self.channel.basic_publish(exchange='', routing_key='reads_queue', body=json.dumps(req),
+                properties=pika.BasicProperties(reply_to=self.callback_queue, correlation_id=corr_id)
+            )
+        else:
+            self.channel.basic_publish(exchange='storage', routing_key='', body=json.dumps(req),
+                properties=pika.BasicProperties(reply_to=self.callback_queue, correlation_id=corr_id)
+            )
 
         return self.wait_for_response(corr_id)
         

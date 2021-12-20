@@ -144,3 +144,6 @@ logs/*
 */data/*
 */data_*
 data_*
+
+killer_conf
+killer_conf/*

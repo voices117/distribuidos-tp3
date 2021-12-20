@@ -15,7 +15,7 @@ client:
 	                -e "WORKER_TASK=client" \
 	                -e "RABBITMQ_ADDRESS=rabbitmq" \
 					-v "$(shell pwd):/app" \
-					--network $(shell basename $(CURDIR))_default \
+					--network $(shell basename $(CURDIR) | sed 's/-//')_default \
 					tp3-client client.py
 
 .PHONY: client image run

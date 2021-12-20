@@ -9,7 +9,7 @@ import logging
 import service_config
 
 from typing import Callable, Dict, Generator, List, Optional, Set, Tuple, Union
-from services import storage
+from services import storage, killer
 from functools import wraps
 from collections import defaultdict
 from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
@@ -175,6 +175,7 @@ def as_worker(task_callback):
         # to do so, we check if we had already reached the expected number of packages
         # from the previous stage.
         for correlation_id, done_messages_received in _load_done_count_from_storage().items():
+            print('[RECOVERY] send DONE messages for stream', correlation_id)
             send_done_messages_if_task_is_done(
                 channel=channel,
                 worker_name=worker_name,
@@ -218,6 +219,8 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
             for body in _load_stream(correlation_id=correlation_id):
                 yield correlation_id, body
 
+                killer.kill_if_applies(stage='during_stream_replay', correlation_id=correlation_id)
+
                 # make sure to update the message count for the rest of the stream
                 msg_count[correlation_id] += 1
                 mark_message_as_seen(seen_set=seen_messages, msg=body, correlation_id=correlation_id)
@@ -235,19 +238,26 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
             LOG_FILES[file_name].write(body + b'\n')
 
         if m := DONE_RE.match(body.decode('utf-8')):
-            _handle_done_message(
-                channel,
-                worker_name=worker_name,
+            accepted = _handle_done_message(
                 m=m,
                 received=done_messages_received,
                 correlation_id=cid,
-                method_frame=method_frame
             )
 
-            if _is_task_done(worker_name, done_messages_received[cid]):
-                # send the EOS message before sending the DONEs because the worker
-                # might send a final package when this message is received
-                yield cid, END_OF_STREAM()
+            if accepted:
+                if _is_task_done(worker_name, done_messages_received[cid]):
+                    # send the EOS message before sending the DONEs because the worker
+                    # might send a final package when this message is received
+                    yield cid, END_OF_STREAM()
+
+                _update_done_counter(counters=done_messages_received)
+
+                # once we stored the new count we can acknowledge the DONE
+                # in RBMQ, because the operation to send DONEs will be retried
+                # in case of error
+                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
+                killer.kill_if_applies(stage='before_sending_done', correlation_id=cid)
 
                 # now signal the end of the stream to the next stage
                 send_done_messages_if_task_is_done(
@@ -256,6 +266,8 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
                     correlation_id=cid,
                     received_ids=done_messages_received[cid]
                 )
+            else:
+                channel.basic_nack(delivery_tag=method_frame.delivery_tag)
 
             continue
 
@@ -275,29 +287,30 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
         yield cid, body
 
         msg_count[cid] += 1
+
+        killer.kill_if_applies(stage='after_msg', correlation_id=cid, msg_count=msg_count[cid])
+
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
 
-def _handle_done_message(channel, worker_name:str, m:re.Match, received:Dict[str, list], correlation_id:str, method_frame):
+def _handle_done_message(m:re.Match, received:Dict[str, list], correlation_id:str):
     sender_id, target_id = m.group(1), m.group(2)
 
     if target_id != WORKER_ID:
         # this message was meant for another node
-        channel.basic_nack(delivery_tag=method_frame.delivery_tag)
+        return False
     elif sender_id in received[correlation_id]:
         # reaching this point means that this is a duplicated message, so
         # we can ignore it
         print('received duplicated DONE message', correlation_id, sender_id, target_id)
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        return True
     else:
         # the message was not seen before. We need to update the storage
         # to mark it as seen before ACK'ing
         received[correlation_id].append(sender_id)
-        _update_done_counter(counters=received)
-
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
         print('received DONE message', correlation_id, sender_id, target_id)
+        return True
 
 
 def send_done_messages_if_task_is_done(channel, worker_name:str, correlation_id:str, received_ids:List[int]) -> bool:
@@ -429,7 +442,7 @@ def _load_stream(correlation_id:str) -> Generator[bytes, None, None]:
         if value is None:
             # this means that there is no message associated to this ID, so
             # the stream finished here
-            print('last ID found when recovering stream', correlation_id, 'was', id)
+            print('last ID tried when recovering stream', correlation_id, 'was', id)
             return
         
         yield value

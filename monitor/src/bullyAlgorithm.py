@@ -104,12 +104,8 @@ class Bully(Thread):
         logging.info(f'[nodo: {self.Id}] Ending election')
 
     def amICoordinator(self):
-        self.lock.acquire()
-        logging.info('tome el lock')
-        coordinator = self.coordinator
-        logging.info('deje el lock')
-        self.lock.release()
-        return coordinator
+        with self.lock:
+            return self.coordinator
 
     def _postNewLider(self):
         for _, addr in self._getSmallers().items():
@@ -122,15 +118,12 @@ class Bully(Thread):
         i = 0
         while self.running:
             if not self.Initilize:
-                self.lock.acquire()
-                logging.info('tome el lock')
-                self._startElection()
-                self.lock.release()
+                with self.lock:
+                    self._startElection()
                 self.Initilize = True
             else:
                 if not self.server.emptyInbox():
                     self.lock.acquire()
-                    logging.info('tome el lock')
                     logging.info(f'[nodo: {self.Id}] a message has arrived')
                     while not self.server.emptyInbox():
                         message = self.server.getMessage()
@@ -140,16 +133,15 @@ class Bully(Thread):
                             if self.coordinator:
                                 try:
                                     coordinatorAddr = self.Nodes[str(message)]
-                                    print(f'me voy a comunicar con {coordinatorAddr}')
+                                    logging.info(f'trying to pass the leadership to {coordinatorAddr}')
                                     r = requests.post(url= coordinatorAddr+'/ack', json={'id': message}, timeout= self.timeout)
-                                    print(f'{r}')
+                                    logging.info(f'leadership passed')
                                 except:
-                                    print('----------------------------ERRROR--------------------------------')
+                                    logging.info('an error occurred while trying to pass the leadership')
                                     continue
                             logging.info(f'changing leader, new leaer {message}')    
                             self.coordinatorId = message
                             self.coordinator = False
-                    logging.info('deje el lock')    
                     self.lock.release()
                 elif self.coordinator:
                     logging.info(f'[nodo: {self.Id}] i am the leader')
@@ -164,11 +156,8 @@ class Bully(Thread):
                     continue
                 else:
                     logging.info(f'[nodo: {self.Id}] the leader has died')
-                    self.lock.acquire()
-                    logging.info('tome el lock')
-                    self._startElection()
-                    logging.info('deje el lock')
-                    self.lock.release()
+                    with self.lock:
+                        self._startElection()
         
         logging.info(f'[nodo: {self.Id}] closing Bully Algorith')         
 

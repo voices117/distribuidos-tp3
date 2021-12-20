@@ -2,6 +2,7 @@ import os
 import babel_library.commons.constants as constants
 from pathlib import Path
 from babel_library.commons.helpers import intTryParse
+import json
 
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 
@@ -10,12 +11,8 @@ class Library:
         pass
 
     def handle_read(self, request):
-        try:
-            with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', "r") as file:
-                payload = file.read()
-        except Exception as error:
-            print(error)
-            raise { "status": constants.ERROR_STATUS, "message": "Error reading."}
+        with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', "r") as file:
+            payload = file.read()
 
         return payload
 
@@ -23,8 +20,7 @@ class Library:
         try: 
             Path(f'./data_{WORKER_ID}/{request.client}').mkdir(parents=True, exist_ok=True)
         except Exception as error:
-            print(error)
-            raise { "status": constants.ERROR_STATUS, "message": "Error writing."}
+            raise Exception(str(error)) 
 
         mode = 'a'
         if request.replace:
@@ -34,7 +30,6 @@ class Library:
             file.write(request.payload)
             file.write('\n')
 
-        return { "status": constants.OK_STATUS }
 
     def handle_delete(self, request):
         try:
@@ -42,7 +37,16 @@ class Library:
             if os.path.exists(path):
                 os.remove(path)
         except Exception as error:
-            print(error)
-            raise { "status": constants.ERROR_STATUS, "message": "Error removing."}
-        
-        return { "status": constants.OK_STATUS }
+            raise str(error)
+
+
+    def list_files(self):
+        responses = []
+
+        client_directories = os.scandir(f'./data_{WORKER_ID}/')
+        for cd in client_directories:
+            stream_files = os.scandir(f'./data_{WORKER_ID}/{cd.name}')
+            for sd in stream_files:
+                responses.append({ "client": cd.name, "stream": sd.name })
+
+        return json.dumps(responses)

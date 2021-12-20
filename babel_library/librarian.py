@@ -1,57 +1,47 @@
 import os
-import random
-from babel_library.requests.commit import Commit
-from babel_library.requests.prepare import Prepare
 from babel_library.requests.delete import Delete
 from babel_library.requests.write import Write
 from babel_library.requests.read import Read
 from babel_library.library import Library
-from babel_library.commons.socket import Socket
-from babel_library.commons.communication import send_request_to
-from babel_library.commons.helpers import intTryParse
+from babel_library_client.borges import Borges
+from babel_library.commons.helpers import intTryParse, tryParse
 import babel_library.commons.constants as constants
 import json
 import middleware
 import pika
 
-MAX_QUEUE_SIZE = intTryParse(os.environ.get('MAX_QUEUE_SIZE')) or 5
-PORT = intTryParse(os.environ.get('PORT')) or random.randint(5000, 6000)
-TIMEOUT = intTryParse(os.environ.get('TIMEOUT')) or 1 #seconds
 QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 RABBITMQ_ADDRESS = os.environ.get('RABBITMQ_ADDRESS') or 'localhost'
 
-architecture = json.loads(os.environ.get('ARCHITECTURE') or '[{"id": 2, "name": "axel-AB350-Gaming-3", "port": 5001}]') 
-siblings = list(filter(lambda l: l["id"] != WORKER_ID, architecture))
-
 class Librarian:
     def __init__(self):
         self.library = Library()
-        self.sock = Socket()
-        self.prepared_requests = {}
-        client = self.sock.listen(MAX_QUEUE_SIZE, PORT)
-        self.init_failsafe_storage()
-        print(f"Librarian listening on port {PORT}.")
-        
-        # Main loop
-        while True:
-            client = self.sock.attend()
-            req = client.receive()
-            res = self.handle(req)
-            client.send(res)
-            client.close()
+        self.recover()
 
-    def init_failsafe_storage(self):
-        self.connection = middleware.connect(RABBITMQ_ADDRESS)
-        self.channel = self.connection.channel()
-        self.channel.queue_declare(queue=f'storage_{WORKER_ID}')
+        self.init_rabbit()
+        self.init_action_input_queue()
+        self.init_read_input_queue()
+        self.channel.start_consuming()
+        print(f"Librarian ready...")
 
-    def handle(self, request):
+    def handle(self, ch, method, properties, body):
         """Saves/Reads the request to/from it's own storage,
          and dispatches the requests to the other librarians to get quorum"""
+        request = tryParse(body)
         req = self.parse(request)
-        return req.execute(self, siblings)
+        res = req.execute(self)
+
+        self.respond(res, properties)
+        self.channel.basic_ack(delivery_tag=method.delivery_tag)
         
+    def respond(self, response, props):
+        """Return a response to the client that requested it through the queue provided in the request"""
+        self.channel.basic_publish(exchange='',
+                     routing_key=props.reply_to,
+                     properties=pika.BasicProperties(correlation_id = props.correlation_id),
+                     body=json.dumps(response))
+
     def parse(self, request):
         if request["type"] == constants.READ_REQUEST:
             return Read(request)
@@ -59,50 +49,47 @@ class Librarian:
             return Write(request)
         elif request["type"] == constants.DELETE_REQUEST:
             return Delete(request)
-        elif request["type"] == constants.PREPARE_REQUEST:
-            return Prepare(request)
-        elif request["type"] == constants.COMMIT_REQUEST:
-            return Commit(request)
 
-    def prepare_request(self, req):
-        self.prepared_requests[req.id] = req.request
-
-    # def save_action(self, req):
-    #     self.channel.basic_publish(exchange='',
-    #                   routing_key=f'storage_{WORKER_ID}',
-    #                   body=json.dumps(req.to_dictionary()))
-
-    def execute_prepared_request(self, id):
-        if id in self.prepared_requests:
-            req = self.prepared_requests[id]
-            req["immediately"] = True
-            return self.handle(req)
-
-        return { "status": constants.OK_STATUS }
-    
-    def sync(self, request, content):
-        """This function is called when a READ happens, it tries to sync all the nodes with the
-        response of the majority"""
-        req = Write({
-            "client": request.client,
-            "stream": request.stream,
-            "payload": content.rstrip('\n'),
-            "replace": True,
-            "immediately": True
+    def recover(self):
+        """This method will create a request to retrieve the existing files on the system and sync with that"""
+        req = Read({
+            "metadata": True
         })
+        client = Borges()
+        response = client.execute(req.to_dictionary()) # Recover the file tree
+        print(response)
+        if response["status"] != constants.OK_STATUS:
+            print("Storage node could not recover data")
+            return
 
-        for sibling in siblings:
-            try:
-                self.dispatch(req, sibling)
-            except Exception as e:
-                print('Error dispatching prepare', e)
+        # Make a read request for each one
+        logs = tryParse(response["message"])
+        for log in logs:
+            print("Retrieving log: ", log)
+            req = Read({ "client": intTryParse(log["client"]), "stream": intTryParse(log["stream"]) })
+            res = client.execute(req.to_dictionary())
+            
+            req = Write({ "client": log["client"], "stream": log["stream"], "payload": res["message"].rstrip('\n'), "replace": True })
+            req.execute(self)
 
+    def init_rabbit(self):
+        self.connection = middleware.connect(RABBITMQ_ADDRESS)
+        self.channel = self.connection.channel()
+        self.channel.basic_qos(prefetch_count=1)
 
-    def dispatch(self, req, sibling):
-        """Dispatches the request to siblings to save/read to/from their storage"""
-        try:
-            res = send_request_to(sibling["name"], sibling["port"], req.to_dictionary(), TIMEOUT)
-        except Exception as err:
-            raise { "status": constants.ERROR_STATUS, "message": err }
+    def init_action_input_queue(self):
+        """This method will initialize the input request queue for this worker"""
+        """AUTO_ACK is disabled, since the ack will be given after responding to the request"""
+        """A single fanout exchange will be responsible for delivering the requests to each of the storage nodes"""
+        self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
+        result = self.channel.queue_declare(queue='', exclusive=True)
+        queue_name = result.method.queue
+        self.channel.queue_bind(exchange='storage', queue=queue_name)
+
+        self.channel.basic_consume(queue=queue_name, on_message_callback=self.handle, auto_ack=False)
         
-        return res
+
+    def init_read_input_queue(self):
+        self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
+        self.channel.queue_declare(queue='reads_queue', durable=True)
+        self.channel.basic_consume(queue='reads_queue', on_message_callback=self.handle, auto_ack=False)

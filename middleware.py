@@ -40,6 +40,7 @@ def connect(address:str, retries:int = 15) -> BlockingConnection:
         try:
             connection = pika.BlockingConnection(pika.ConnectionParameters(address))
             success = True
+            break
         except pika.exceptions.AMQPConnectionError:
             time.sleep(1)
     

@@ -1,0 +1,19 @@
+{
+    "id": 4,
+    "nodes": {
+        "3": "http://slave_3:8081",
+        "5": "http://master:8083",
+        "1": "http://slave_1:8082",
+        "2": "http://slave_2:8080",
+        "4": "http://slave_4:8084"
+    },
+    "systemNodes": {
+        "slave_1": "http://slave_1:8082",
+        "slave_2": "http://slave_2:8080",
+        "slave_3": "http://slave_3:8081",
+        "master": "http://master:8083"
+    },
+    "timeout": 15,
+    "addr": "slave_4",
+    "port": 8084
+}

@@ -1,0 +1,63 @@
+version: '3'
+services:
+  master:
+    container_name: master
+    build:
+      context: src
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./src/config5.json:/config.json
+    networks:
+      - tp_net
+  
+  slave_4:
+    container_name: slave_4
+    build:
+      context: src
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./src/config4.json:/config.json
+    networks:
+      - tp_net 
+
+  slave_3:
+    container_name: slave_3
+    build:
+      context: src
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./src/config3.json:/config.json
+    networks:
+      - tp_net 
+
+  slave_2:
+    container_name: slave_2
+    build:
+      context: src
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./src/config2.json:/config.json
+    networks:
+      - tp_net
+
+  slave_1:
+    container_name: slave_1
+    build:
+      context: src
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./src/config.json:/config.json
+    networks:
+      - tp_net       
+
+networks:
+  tp_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.125.0/24

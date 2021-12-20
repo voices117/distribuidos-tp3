@@ -1,0 +1,15 @@
+{
+    "id": 3,
+    "nodes": {
+        "1": "http://monitor_1:8081",
+        "2": "http://monitor_2:8082",
+        "3": "http://monitor_3:8083"
+    },
+    "systemNodes": {
+        "monitor_1": "http://monitor_1:8081",
+        "monitor_2": "http://monitor_2:8082"
+    },
+    "timeout": 15,
+    "addr": "monitor_3",
+    "port": 8083
+}

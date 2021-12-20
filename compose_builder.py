@@ -1,7 +1,7 @@
 import os
 import math
 import json
-from service_config import WORKERS, LIBRARIANS, MAX_QUEUE_SIZE, TIMEOUT
+from service_config import WORKERS, LIBRARIANS, MAX_QUEUE_SIZE, TIMEOUT, NUMBER_OF_MONITOR_CONTAINERS
 
 COMPOSE_TEMPLATE = """
 version: '3.4'
@@ -77,6 +77,18 @@ STORAGE_SERVICE_TEMPLATE = """
 
 """
 
+MONITOR_SERVICE_TEMPLATE = """
+    monitor_{number}:
+        container_name: monitor_{number}
+        build:
+          context: ./monitor/src
+          dockerfile: Dockerfile
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - ./monitor/src/config{number}.json:/config.json
+        networks:
+          - storage_tp3_network
+"""
 
 def create_docker_compose():
     content = COMPOSE_TEMPLATE
@@ -96,15 +108,19 @@ def create_docker_compose():
     #####################
     ##################### STORAGE NODES
     for lib in LIBRARIANS:
-        content += STORAGE_SERVICE_TEMPLATE.format(name=lib["name"],
-        worker_id=lib["id"],
-        timeout=TIMEOUT,
-        max_queue_size=MAX_QUEUE_SIZE,
-        port=lib["port"],
-        quorum=quorum,
-        architecture=architecture)
+       content += STORAGE_SERVICE_TEMPLATE.format(name=lib["name"],
+       worker_id=lib["id"],
+       timeout=TIMEOUT,
+       max_queue_size=MAX_QUEUE_SIZE,
+       port=lib["port"],
+       quorum=quorum,
+       architecture=architecture)
     #####################
     #####################
+
+    for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
+        content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
+
 
     return content
 

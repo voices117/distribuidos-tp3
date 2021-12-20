@@ -1,4 +1,5 @@
 docker-compose.yml: service_config.py compose_builder.py
+	python3 monitor_config_builder.py
 	python compose_builder.py > docker-compose.yml
 
 run: docker-compose.yml

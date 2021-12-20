@@ -30,8 +30,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         if key not in _data_:
             return self._bad_request(msg='key not found', status=404)
 
-        data = {'value': _data_[key]}
-        self._send_json(data=data, status=200)
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(_data_[key])
 
     def do_POST(self):
         url = urlparse(self.path)
@@ -42,7 +43,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         content_len = int(self.headers.get('Content-Length'))
         value = self.rfile.read(content_len)
 
-        _data_[key] = value.decode('utf-8')
+        _data_[key] = value
         self._send_json(data={'status': 'ok'}, status=200)
 
     def do_DELETE(self):

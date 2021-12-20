@@ -201,7 +201,7 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
     if worker_name in service_config.SHARDED:
         # sharded stages guarantee that the messages are routed by the worker
         # unique ID. Thus, we use an exclusive queue and a "direct" exchange
-        result = channel.queue_declare(queue='', exclusive=True)
+        result = channel.queue_declare(queue=STORAGE_ID, exclusive=False, durable=True, auto_delete=False)
         queue_name = result.method.queue
 
         channel.queue_bind(exchange=worker_name, queue=queue_name, routing_key=WORKER_ID)
@@ -367,7 +367,7 @@ def _done_messages_sent(correlation_id:str) -> bool:
     """Returns whether the DONE messages for the given worker
     and correlation ID were already sent."""
 
-    value = storage.read(id=WORKER_ID, key=f'done_messages_sent-{correlation_id}')
+    value = storage.read(id=STORAGE_ID, key=f'done_messages_sent-{correlation_id}')
     return value == b'1'
 
 
@@ -375,7 +375,7 @@ def _mark_done_messages_as_sent(correlation_id:str):
     """Stores a value indicating that the DONE messages for the given worker
     and correlation ID were sent."""
 
-    storage.set(id=WORKER_ID, key=f'done_messages_sent-{correlation_id}', value=b'1')
+    storage.set(id=STORAGE_ID, key=f'done_messages_sent-{correlation_id}', value=b'1')
     print('finished stream', correlation_id)
 
 

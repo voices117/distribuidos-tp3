@@ -80,7 +80,6 @@ class Bully(Thread):
 
     def _startElection(self):
         logging.info(f'[nodo: {self.Id}] Starting new election')
-        self.lock.acquire()
         higherId = -1
         for id, addr in self.Highers.items():
             try:
@@ -102,12 +101,15 @@ class Bully(Thread):
                 logging.info(f'[nodo: {self.Id}] I am NOT the new coordinator')
         else:
             self.coordinatorId = UNKNOWN_LIDER_ID
-        self.lock.release()
         logging.info(f'[nodo: {self.Id}] Ending election')
 
     def amICoordinator(self):
-        with self.lock:
-            return self.coordinator
+        self.lock.acquire()
+        logging.info('tome el lock')
+        coordinator = self.coordinator
+        logging.info('deje el lock')
+        self.lock.release()
+        return coordinator
 
     def _postNewLider(self):
         for _, addr in self._getSmallers().items():
@@ -120,26 +122,35 @@ class Bully(Thread):
         i = 0
         while self.running:
             if not self.Initilize:
+                self.lock.acquire()
+                logging.info('tome el lock')
                 self._startElection()
+                self.lock.release()
                 self.Initilize = True
             else:
                 if not self.server.emptyInbox():
+                    self.lock.acquire()
+                    logging.info('tome el lock')
                     logging.info(f'[nodo: {self.Id}] a message has arrived')
-                    message = self.server.getMessage()
-                    if  message == ELECTION_SIGNAL:
-                        self._startElection()
-                    else:
-                        self.lock.acquire()
-                        self.coordinatorId = message
-                        self.coordinator = False
-                        if self.coordinator:
-                            try:
-                                coordinatorAddr = self.Nodes[self.coordinatorId]
-                                requests.post(url= coordinatorAddr+'/ack', data={'id': self.coordinatorId})
-                            except:
-                                self.lock.release()
-                                continue 
-                        self.lock.release()
+                    while not self.server.emptyInbox():
+                        message = self.server.getMessage()
+                        if  message == ELECTION_SIGNAL:
+                            self._startElection()
+                        else:
+                            if self.coordinator:
+                                try:
+                                    coordinatorAddr = self.Nodes[str(message)]
+                                    print(f'me voy a comunicar con {coordinatorAddr}')
+                                    r = requests.post(url= coordinatorAddr+'/ack', json={'id': message}, timeout= self.timeout)
+                                    print(f'{r}')
+                                except:
+                                    print('----------------------------ERRROR--------------------------------')
+                                    continue
+                            logging.info(f'changing leader, new leaer {message}')    
+                            self.coordinatorId = message
+                            self.coordinator = False
+                    logging.info('deje el lock')    
+                    self.lock.release()
                 elif self.coordinator:
                     logging.info(f'[nodo: {self.Id}] i am the leader')
                     time.sleep(2)
@@ -153,7 +164,11 @@ class Bully(Thread):
                     continue
                 else:
                     logging.info(f'[nodo: {self.Id}] the leader has died')
+                    self.lock.acquire()
+                    logging.info('tome el lock')
                     self._startElection()
+                    logging.info('deje el lock')
+                    self.lock.release()
         
         logging.info(f'[nodo: {self.Id}] closing Bully Algorith')         
 

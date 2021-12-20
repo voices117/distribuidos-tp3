@@ -7,7 +7,12 @@
     },
     "systemNodes": {
         "monitor_1": "http://monitor_1:8081",
-        "monitor_2": "http://monitor_2:8082"
+        "monitor_2": "http://monitor_2:8082",
+        "librarian_1": "http://librarian_1:5000",
+        "librarian_2": "http://librarian_2:5001",
+        "librarian_3": "http://librarian_3:5002",
+        "librarian_4": "http://librarian_4:5003",
+        "librarian_5": "http://librarian_5:5004"
     },
     "timeout": 15,
     "addr": "monitor_3",

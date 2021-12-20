@@ -86,8 +86,6 @@ MONITOR_SERVICE_TEMPLATE = """
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
           - ./monitor/src/config{number}.json:/config.json
-        networks:
-          - storage_tp3_network
 """
 
 def create_docker_compose():
@@ -118,8 +116,8 @@ def create_docker_compose():
     #####################
     #####################
 
-    for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
-        content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
+    # for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
+    #     content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
 
 
     return content

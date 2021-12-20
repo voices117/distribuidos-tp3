@@ -11,21 +11,21 @@ WORKERS = {
     'client_questions': 1,  # not an actual worker, but helps to avoid special cases
 
     # input
-    'answers_csv_parser': 3,
-    'questions_csv_parser': 3,
+    'answers_csv_parser': 2,
+    'questions_csv_parser': 2,
 
     # pipeline 1
     'filter_by_score': 2,
-    'filter_by_sentiment_analysis': 6,
+    'filter_by_sentiment_analysis': 2,
     'calculate_percentage': 1,
 
     # pipeline 2
-    'score_by_user': 4,
+    'score_by_user': 2,
     'filter_top_10_by_score': 1,
 
     # pipeline 3
-    'join': 3,
-    'score_by_tag_and_year': 4,
+    'join': 2,
+    'score_by_tag_and_year': 2,
     'top_10_tags': 1,
 }
 
@@ -73,26 +73,26 @@ LIBRARIANS=[
         "name": "librarian_1",
         "port": 5000
     },
-    # {
-    #     "id": 2,
-    #     "name": "librarian_2",
-    #     "port": 5001
-    # },
-    # {
-    #     "id": 3,
-    #     "name": "librarian_3",
-    #     "port": 5002
-    # },
-    # {
-    #     "id": 4,
-    #     "name": "librarian_4",
-    #     "port": 5003
-    # },
-    # {
-    #     "id": 5,
-    #     "name": "librarian_5",
-    #     "port": 5004
-    # }
+    {
+        "id": 2,
+        "name": "librarian_2",
+        "port": 5001
+    },
+    {
+        "id": 3,
+        "name": "librarian_3",
+        "port": 5002
+    },
+    {
+        "id": 4,
+        "name": "librarian_4",
+        "port": 5003
+    },
+    {
+        "id": 5,
+        "name": "librarian_5",
+        "port": 5004
+    }
 ]
 
 MAX_QUEUE_SIZE=5

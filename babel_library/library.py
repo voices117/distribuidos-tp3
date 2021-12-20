@@ -28,7 +28,6 @@ class Library:
 
         with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', mode) as file:
             file.write(request.payload)
-            file.write('\n')
 
 
     def handle_delete(self, request):

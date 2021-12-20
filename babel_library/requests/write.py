@@ -9,7 +9,7 @@ class Write():
         self.replace = req["replace"]
 
     def execute(self, librarian):
-        print("Executing write: ", self.to_dictionary())
+        print(f'Executing write: client:{self.client}, stream:{self.stream}')
         librarian.library.handle_write(self)
         return { "status": constants.OK_STATUS }
             

@@ -3,8 +3,6 @@ This file defines the pipeline's DAG and the number of workers to process each
 stage.
 """
 
-from typing import Dict, List
-
 
 # indicates the number of nodes on each stage
 # this is used by `compose_builder.py` to define how many services to create
@@ -34,7 +32,7 @@ WORKERS = {
 
 # adjacency list representing the DAG. This is required so each worker knows
 # how many workers are on the other stages to receive and send DONE messages.
-NEXT_TASK:Dict[str, List[str]] = {
+NEXT_TASK = {
     'client_answers': ['answers_csv_parser'],
     'client_questions': ['questions_csv_parser'],
 
@@ -75,26 +73,26 @@ LIBRARIANS=[
         "name": "librarian_1",
         "port": 5000
     },
-    {
-        "id": 2,
-        "name": "librarian_2",
-        "port": 5001
-    },
-    {
-        "id": 3,
-        "name": "librarian_3",
-        "port": 5002
-    },
-    {
-        "id": 4,
-        "name": "librarian_4",
-        "port": 5003
-    },
-    {
-        "id": 5,
-        "name": "librarian_5",
-        "port": 5004
-    }
+    # {
+    #     "id": 2,
+    #     "name": "librarian_2",
+    #     "port": 5001
+    # },
+    # {
+    #     "id": 3,
+    #     "name": "librarian_3",
+    #     "port": 5002
+    # },
+    # {
+    #     "id": 4,
+    #     "name": "librarian_4",
+    #     "port": 5003
+    # },
+    # {
+    #     "id": 5,
+    #     "name": "librarian_5",
+    #     "port": 5004
+    # }
 ]
 
 MAX_QUEUE_SIZE=5

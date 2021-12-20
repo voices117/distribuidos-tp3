@@ -5,9 +5,29 @@ import os
 import json
 from babel_library.commons.helpers import tryParse, get_correlation_id
 import babel_library.commons.constants as constants
-import middleware
+import logging
 
 RABBITMQ_ADDRESS = os.environ.get('RABBITMQ_ADDRESS') or 'localhost'
+
+def connect(address:str, retries:int = 25):
+    """Connects to a RabbitMQ instance in the given address with the defined
+    number of retries."""
+
+    try:
+        # temporally disable logging to avoid getting spam messages
+        logging.getLogger("pika").propagate = False
+
+        for _ in range(retries):
+            try:
+                connection = pika.BlockingConnection(pika.ConnectionParameters(address))
+                return connection
+            except pika.exceptions.AMQPConnectionError:
+                time.sleep(1)
+        
+        # at this point we failed to get a connection
+        raise Exception('could not connect to rabbit MQ')
+    finally:
+        logging.getLogger("pika").propagate = True
 
 class Borges:
     def __init__(self, timeout=3):
@@ -19,7 +39,7 @@ class Borges:
         self.init_action_storage_queues()
 
     def init_rabbit(self):
-        self.connection = middleware.connect(RABBITMQ_ADDRESS)
+        self.connection = connect(RABBITMQ_ADDRESS)
         self.channel = self.connection.channel()
         self.channel.basic_qos(prefetch_count=1)
         

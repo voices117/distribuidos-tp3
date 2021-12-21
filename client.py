@@ -98,11 +98,27 @@ if __name__ == '__main__':
             correlation_id=CORRELATION_ID
         )
 
-    t1 = threading.Thread(target=upload_questions)
-    t2 = threading.Thread(target=upload_answers)
 
-    print('starting threads')
-    t1.start(); t2.start()
+    connection, channel, response_queue = middleware.build_response_queue(
+        rbmq_address=RABBITMQ_ADDRESS,
+        correlation_id=CORRELATION_ID
+    )
 
-    t1.join(); t2.join()
-    print('joined threads')
+    try:
+        t1 = threading.Thread(target=upload_questions)
+        t2 = threading.Thread(target=upload_answers)
+
+        print('starting threads')
+        t1.start(); t2.start()
+
+        t1.join(); t2.join()
+        print('joined threads')
+
+        print('waiting for response...')
+        # expects 3 messages (one por each result in the output of the pipeline)
+        for msg in middleware.consume_response(channel=channel, queue_name=response_queue):
+            # prints the pipeline response
+            print(msg)
+    finally:
+        channel.close()
+        connection.close()

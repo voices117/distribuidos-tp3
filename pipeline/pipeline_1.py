@@ -9,7 +9,7 @@ import service_config
 
 from typing import Dict
 from collections import defaultdict
-from middleware import as_worker, consume_from, send_data, END_OF_STREAM
+from middleware import as_worker, consume_from, send_data, send_to_client, END_OF_STREAM
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pika.adapters.blocking_connection import BlockingChannel
 
@@ -87,9 +87,11 @@ def calculate_percentage_callback(channel:BlockingChannel, worker_id:str):
         if isinstance(body, END_OF_STREAM):
             if final_count_total[correlation_id] > 0:
                 p = final_count_negative[correlation_id] / final_count_total[correlation_id]
-                print('      >>> percentage of answers with score > 10 and negative S.A. is', p)
+                response = f' * percentage of answers with score > 10 and negative S.A. is {p}'
             else:
-                print('      >>> total count is zero')
+                response = ' * total count is zero'
+
+            send_to_client(channel=channel, correlation_id=correlation_id, body=response.encode('utf-8'))
 
             final_count_total.pop(correlation_id, None)
             final_count_negative.pop(correlation_id, None)

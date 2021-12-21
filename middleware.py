@@ -37,8 +37,8 @@ DONE_RE = re.compile('^\x00(.+?)\x1c(\\d+)$')
 # many "DONE" messages it needs to expect
 WORKERS_TO_WAIT:Dict[str, int] = defaultdict(int)
 for task, next_tasks in service_config.NEXT_TASK.items():
-    for next in next_tasks:
-        WORKERS_TO_WAIT[next] += 1 * service_config.WORKERS[task]
+    for next_task in next_tasks:
+        WORKERS_TO_WAIT[next_task] += 1 * service_config.WORKERS[task]
 
 
 # map of workers registered by `as_worker`
@@ -48,6 +48,9 @@ REGISTERED_WORKERS:Dict[str, Callable] = {}
 WORKER_ID = os.environ['WORKER_ID']
 WORKER_TASK = os.environ['WORKER_TASK']
 STORAGE_ID = f"{WORKER_TASK}_{WORKER_ID}"
+
+# name of the exchange where the client output is sent
+CLIENT_RESPONSE_EXCHANGE = 'client_output'
 
 
 class END_OF_STREAM:
@@ -84,6 +87,9 @@ def connect(address:str, retries:int = 25) -> BlockingConnection:
 def setup_communication(channel:BlockingChannel) -> None:
     """Creates the required queues and exchanges for the pipeline to work."""
 
+    # creates the queue where the clients receive the output
+    channel.exchange_declare(exchange=CLIENT_RESPONSE_EXCHANGE, exchange_type='direct')
+
     for worker in service_config.WORKERS:
         if worker.startswith('client'):
             continue
@@ -91,7 +97,7 @@ def setup_communication(channel:BlockingChannel) -> None:
         if worker in service_config.SHARDED:
             channel.exchange_declare(exchange=worker, exchange_type='direct')
         else:
-            channel.queue_declare(queue=worker)
+            channel.queue_declare(queue=worker, durable=True)
 
 
 def execute_worker(name:str, channel:BlockingChannel) -> None:
@@ -146,6 +152,46 @@ def send_data(data:Union[bytes, str], channel:BlockingChannel, worker:str, corre
             correlation_id=correlation_id,
         )
     )
+
+
+def send_to_client(channel:BlockingChannel, correlation_id:str, body:bytes):
+    """Sends a message to a client identified by the `correlation_id`. This function is
+    used to send the final pipeline response to the clients."""
+
+    channel.basic_publish(
+        exchange=CLIENT_RESPONSE_EXCHANGE,
+        routing_key=correlation_id,
+        body=body,
+        mandatory=1,
+        properties=pika.BasicProperties(correlation_id=correlation_id)
+    )
+
+
+def build_response_queue(rbmq_address:str, correlation_id:str) -> Tuple[BlockingConnection, BlockingChannel, str]:
+    """Builds the queue that clients can use to recover the final pipeline
+    response once it finishes."""
+
+    connection = pika.BlockingConnection(pika.ConnectionParameters(rbmq_address))
+    channel = connection.channel()
+
+    result = channel.queue_declare(queue='', exclusive=True)
+    response_queue:str = result.method.queue
+
+    # bind the queue to listen to messages posted for our correlation ID
+    channel.queue_bind(exchange=CLIENT_RESPONSE_EXCHANGE, queue=response_queue, routing_key=correlation_id)
+    return connection, channel, response_queue
+
+
+def consume_response(channel:BlockingChannel, queue_name:str) -> Generator[str, None, None]:
+    """This function should be used by clients that await the pipeline's
+    response."""
+
+    generator = channel.consume(queue_name, auto_ack=True)
+
+    # expects 3 messages (one por each result in the output of the pipeline)
+    for _ in range(3):
+        _, _, body = next(generator)
+        yield body.decode('utf-8')
 
 
 def send_done(channel:BlockingChannel, worker:str, correlation_id:str):

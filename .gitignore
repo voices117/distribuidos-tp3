@@ -147,3 +147,5 @@ data_*
 
 killer_conf
 killer_conf/*
+
+monitor/src/config*

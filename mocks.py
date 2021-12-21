@@ -1,7 +1,3 @@
-"""
-TODO: delete this file once the real services are implemented
-"""
-
 import json
 
 from typing import Dict

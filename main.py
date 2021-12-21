@@ -1,7 +1,6 @@
 import os
 import logging
 import middleware
-import mocks  # TODO: remove once the storage is complete
 
 from pika import connection
 from pipeline import *
@@ -12,7 +11,6 @@ if __name__ == '__main__':
     RABBITMQ_ADDRESS = os.environ['RABBITMQ_ADDRESS']
     WORKER_TASK = os.environ['WORKER_TASK']
     WORKER_ID = os.environ['WORKER_ID']
-    STORAGE_ADDRESS = os.environ['STORAGE_ADDRESS']
     LOG_MESSAGES = os.environ.get('LOG_MESSAGES', '0')
 
     logging.getLogger("pika").setLevel(logging.WARNING)
@@ -28,7 +26,7 @@ if __name__ == '__main__':
 
     try:
         middleware.setup_communication(channel=channel)
-        storage.connect(address=STORAGE_ADDRESS)
+        storage.connect()
 
         print(WORKER_TASK, 'starting')
         middleware.execute_worker(name=WORKER_TASK, channel=channel)

@@ -29,6 +29,25 @@ class Library:
         with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', mode) as file:
             file.write(request.payload)
 
+    def handle_lock(self, request):
+        path = f'./data_{WORKER_ID}/{request.client}/{request.stream}'
+        if os.path.exists(path):
+            raise Exception("Lock already aquired")
+
+        try: 
+            Path(f'./data_{WORKER_ID}/{request.client}').mkdir(parents=True, exist_ok=True)
+        except Exception as error:
+            raise Exception(str(error)) 
+
+        with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', 'w') as file:
+            file.write('locked')
+
+    def handle_unlock(self, request):
+        try:
+            path = f'./data_{WORKER_ID}/{request.client}/{request.stream}'
+            os.remove(path)
+        except Exception as error:
+            raise Exception(str(error))
 
     def handle_delete(self, request):
         try:
@@ -36,7 +55,7 @@ class Library:
             if os.path.exists(path):
                 os.remove(path)
         except Exception as error:
-            raise str(error)
+            raise Exception(str(error))
 
 
     def list_files(self):

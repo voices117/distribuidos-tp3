@@ -91,7 +91,22 @@ class Borges:
             "replace": True
         }
         return self.execute(req)
-        
+
+    def try_lock(self, client, stream):
+        req = {
+            "type": constants.LOCK_REQUEST,
+            "client": client,
+            "stream": stream
+        }
+        return self.execute(req)
+
+    def unlock(self, client, stream):
+        req = {
+            "type": constants.UNLOCK_REQUEST,
+            "client": client,
+            "stream": stream
+        }
+        return self.execute(req)
 
     def read(self, client, stream):
         req = {

@@ -66,8 +66,9 @@ class Librarian:
         logs = tryParse(response["message"])
         for log in logs:
             print("Retrieving log: ", log)
-            req = Read({ "client": intTryParse(log["client"]), "stream": intTryParse(log["stream"]) })
+            req = Read({ "client": log["client"], "stream": log["stream"] })
             res = client.execute(req.to_dictionary())
+            print(res)
             
             req = Write({ "client": log["client"], "stream": log["stream"], "payload": res["message"].rstrip('\n'), "replace": True })
             req.execute(self)

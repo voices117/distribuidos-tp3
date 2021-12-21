@@ -7,6 +7,7 @@ class Write():
         self.stream = req["stream"]
         self.payload = req["payload"]
         self.replace = req["replace"]
+        self.source = req.get("source")
 
     def execute(self, librarian):
         print(f'Executing write: client:{self.client}, stream:{self.stream}')

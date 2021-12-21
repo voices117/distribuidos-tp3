@@ -10,7 +10,6 @@ import json
 import middleware
 import pika
 
-QUORUM = intTryParse(os.environ.get('QUORUM')) or 2
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 RABBITMQ_ADDRESS = os.environ.get('RABBITMQ_ADDRESS') or 'localhost'
 
@@ -83,7 +82,7 @@ class Librarian:
         """AUTO_ACK is disabled, since the ack will be given after responding to the request"""
         """A single fanout exchange will be responsible for delivering the requests to each of the storage nodes"""
         self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
-        result = self.channel.queue_declare(queue='', exclusive=True)
+        result = self.channel.queue_declare(queue=f'storage_{WORKER_ID}')
         queue_name = result.method.queue
         self.channel.queue_bind(exchange='storage', queue=queue_name)
 

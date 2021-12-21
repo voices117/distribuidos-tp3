@@ -6,10 +6,11 @@ class Read():
         self.type = constants.READ_REQUEST
         self.client = req.get("client")
         self.stream = req.get("stream")
-        self.metadata = req.get('metadata')
+        self.metadata = req.get("metadata")
+        self.source = req.get("source")
 
     def execute(self, librarian):
-        print("Executing read: ", self.to_dictionary())
+        print(f'Executing read: client:{self.client} stream: {self.stream}')
         try:
             if self.metadata:
                 return { "status": constants.OK_STATUS, "message": librarian.library.list_files() }

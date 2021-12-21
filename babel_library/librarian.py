@@ -29,10 +29,14 @@ class Librarian:
          and dispatches the requests to the other librarians to get quorum"""
         request = tryParse(body)
         req = self.parse(request)
-        res = req.execute(self)
 
-        self.respond(res, properties)
-        self.channel.basic_ack(delivery_tag=method.delivery_tag)
+        if req.source != WORKER_ID:
+            res = req.execute(self)
+            self.respond(res, properties)
+            self.channel.basic_ack(delivery_tag=method.delivery_tag)
+
+        if req.source == WORKER_ID and req.type == constants.WRITE_REQUEST:
+            self.channel.basic_ack(delivery_tag=method.delivery_tag)
         
     def respond(self, response, props):
         """Return a response to the client that requested it through the queue provided in the request"""
@@ -56,7 +60,7 @@ class Librarian:
         })
         client = Borges()
         response = client.execute(req.to_dictionary()) # Recover the file tree
-        print(response)
+        
         if response["status"] != constants.OK_STATUS:
             print("Storage node could not recover data")
             return
@@ -65,11 +69,10 @@ class Librarian:
         logs = tryParse(response["message"])
         for log in logs:
             print("Retrieving log: ", log)
-            req = Read({ "client": log["client"], "stream": log["stream"] })
+            req = Read({ "client": log["client"], "stream": log["stream"], "source": WORKER_ID })
             res = client.execute(req.to_dictionary())
-            print(res)
             
-            req = Write({ "client": log["client"], "stream": log["stream"], "payload": res["message"].rstrip('\n'), "replace": True })
+            req = Write({ "client": log["client"], "stream": log["stream"], "payload": res["message"].rstrip('\n'), "source": WORKER_ID, "replace": True })
             req.execute(self)
 
     def init_rabbit(self):

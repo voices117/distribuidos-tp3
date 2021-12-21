@@ -44,3 +44,9 @@ def read(id:str, key:str):
 def delete(id:str, key:str):
     """Deletes the key and value from the storage."""
     storage_client.delete(id, key)
+
+def lock(id, key):
+    return storage_client.try_lock(id, key)
+
+def unlock(id, key):
+    return storage_client.unlock(id, key)

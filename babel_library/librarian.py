@@ -2,6 +2,8 @@ import os
 from babel_library.requests.delete import Delete
 from babel_library.requests.write import Write
 from babel_library.requests.read import Read
+from babel_library.requests.lock import Lock
+from babel_library.requests.unlock import Unlock
 from babel_library.library import Library
 from babel_library_client.borges import Borges
 from babel_library.commons.helpers import intTryParse, tryParse
@@ -52,6 +54,10 @@ class Librarian:
             return Write(request)
         elif request["type"] == constants.DELETE_REQUEST:
             return Delete(request)
+        elif request["type"] == constants.LOCK_REQUEST:
+            return Lock(request)
+        elif request["type"] == constants.UNLOCK_REQUEST:
+            return Unlock(request)
 
     def recover(self):
         """This method will create a request to retrieve the existing files on the system and sync with that"""

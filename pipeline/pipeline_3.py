@@ -6,7 +6,7 @@ Top 10 of tags by total score for each year.
 import json
 from typing import Dict
 
-from middleware import END_OF_STREAM, USE_HASH, as_worker, consume_from, send_data
+from middleware import END_OF_STREAM, USE_HASH, as_worker, consume_from, send_to_client, send_data
 from collections import defaultdict
 from pika.adapters.blocking_connection import BlockingChannel
 
@@ -127,12 +127,17 @@ def top_10_tags_callback(channel:BlockingChannel, worker_id:str):
     tags_per_year = defaultdict(lambda: defaultdict(Counter))
     for correlation_id, body in consume_from(channel, 'top_10_tags', remove_duplicates=True):
         if isinstance(body, END_OF_STREAM):
-            # print final result
+            # build final result
+            response = '====================='
+            response = '= Top tags per year ='
+            response = '====================='
             for year in sorted(tags_per_year[correlation_id]):
-                print(year)
+                response += f'{year}\n'
                 top_10 = tags_per_year[correlation_id][year].most_common(10)
                 for tag, score in top_10:
-                    print('    ', tag, f'({score})')
+                    response += f'    {tag} ({score})\n'
+
+            send_to_client(channel=channel, correlation_id=correlation_id, body=response.encode('utf-8'))
 
             tags_per_year.pop(correlation_id)
             continue

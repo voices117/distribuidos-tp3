@@ -7,7 +7,7 @@ and answer scores.
 import json
 from typing import Dict
 
-from middleware import as_worker, consume_from, send_data, END_OF_STREAM
+from middleware import as_worker, consume_from, send_to_client, send_data, END_OF_STREAM
 from collections import defaultdict
 from pika.adapters.blocking_connection import BlockingChannel
 
@@ -78,6 +78,7 @@ def filter_top_10_by_score_callback(channel:BlockingChannel, worker_id:str):
     for correlation_id, body in consume_from(channel, 'filter_top_10_by_score', remove_duplicates=True):
         if isinstance(body, END_OF_STREAM):
             _calculate_final_score(
+                channel=channel,
                 correlation_id=correlation_id,
                 questions_stats=questions_stats,
                 answers_stats=answers_stats,
@@ -98,7 +99,7 @@ def filter_top_10_by_score_callback(channel:BlockingChannel, worker_id:str):
             answers_stats[correlation_id].update(stats['answers'])
 
 
-def _calculate_final_score(correlation_id:str, questions_stats, answers_stats, score_by_user):
+def _calculate_final_score(channel, correlation_id:str, questions_stats, answers_stats, score_by_user):
     # global averages
     avg_question_score = questions_stats[correlation_id]['score'] / questions_stats[correlation_id]['count']
     avg_answer_score = answers_stats[correlation_id]['score'] / answers_stats[correlation_id]['count']
@@ -120,8 +121,10 @@ def _calculate_final_score(correlation_id:str, questions_stats, answers_stats, s
             if len(top_ten) > 10:
                 heapq.heappop(top_ten)
 
-    print('==========')
-    print('= Top 10 =')
-    print('==========')
+    response  = '==========\n'
+    response += '= Top 10 =\n'
+    response += '==========\n'
     for i, (score, user) in enumerate(sorted(top_ten, reverse=True)):
-        print(f' {i+1: 2} ', user, score)
+        response += f' {i+1: 2} User: {user}  Score: {score}\n'
+
+    send_to_client(channel=channel, correlation_id=correlation_id, body=response.encode('utf-8'))

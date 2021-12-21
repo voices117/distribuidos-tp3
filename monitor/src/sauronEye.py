@@ -17,7 +17,6 @@ class sauronEye:
             self.Bully = Bully(data)
             self.Nodes = data['systemNodes']
             self.timeout = data['timeout']
-            print(data)
         self.running = True    
         self.Bully.start()
         logging.basicConfig(level=logging.INFO)
@@ -44,7 +43,9 @@ class sauronEye:
                 # someone killed me or revived the leader
                 return
             try:
+                logging.info(f'getting {addr} status')
                 response = requests.get(url=addr + '/status', timeout=self.timeout)
+                print(response)
                 if response.status_code != requests.codes.ok:
                     if self._bringBackToLife(container) == OK:
                         logging.info(f'node {container} has been restored')
@@ -62,7 +63,7 @@ class sauronEye:
                 logging.info('slave node')
             else:
                 self.loop()
-            time.sleep(10) 
+            time.sleep(6) 
         logging.info('bye bye sauron')
 
 s = sauronEye()

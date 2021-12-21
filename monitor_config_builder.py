@@ -1,5 +1,5 @@
 import json
-from service_config import WORKERS, LIBRARIANS, MAX_QUEUE_SIZE, TIMEOUT, NUMBER_OF_MONITOR_CONTAINERS
+from service_config import LIBRARIANS, BULLY_TIMEOUT, NUMBER_OF_MONITOR_CONTAINERS
 
 def get_monitor_nodes():
 
@@ -43,7 +43,7 @@ def create_monitor_config():
         systemNodes_ = systemNodes.copy()
         systemNodes_.pop(f'monitor_{monitor_number}')
         config['systemNodes'] = systemNodes_
-        config['timeout'] = 15 #seg
+        config['timeout'] = BULLY_TIMEOUT #seg
         config['addr'] = f'monitor_{monitor_number}'
         config['port'] = int(f'808{monitor_number}')
 

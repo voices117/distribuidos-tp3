@@ -63,6 +63,7 @@ SERVICE_TEMPLATE = """
 STORAGE_SERVICE_TEMPLATE = """
     {name}:
         <<: *base-storage-worker
+        container_name: {name}
         environment:
             <<: *common-env-variables
             WORKER_ID: {worker_id}
@@ -116,8 +117,8 @@ def create_docker_compose():
     #####################
     #####################
 
-    # for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
-    #     content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
+    #for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
+    #    content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
 
 
     return content

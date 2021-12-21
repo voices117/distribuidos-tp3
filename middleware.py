@@ -361,6 +361,8 @@ def _handle_done_message(m:re.Match, received:Dict[str, list], correlation_id:st
 
 def send_done_messages_if_task_is_done(channel, worker_name:str, correlation_id:str, received_ids:List[int]) -> bool:
     if _done_messages_sent(correlation_id):
+        _delete_stream(correlation_id=correlation_id)
+
         print('DONE messages were already sent, skipping')
         return False
 
@@ -369,9 +371,8 @@ def send_done_messages_if_task_is_done(channel, worker_name:str, correlation_id:
         for next_task in service_config.NEXT_TASK[worker_name]:
             send_done(channel=channel, worker=next_task, correlation_id=correlation_id)
 
-        # TODO: should we clean the old stream data?
-
         _mark_done_messages_as_sent(correlation_id=correlation_id)
+        _delete_stream(correlation_id=correlation_id)
         return True
 
     # still missing some DONE messages
@@ -407,6 +408,12 @@ def _update_done_counter(counters:Dict[str, List[int]]):
 
     data = json.dumps(counters).encode('utf-8')
     storage.set(id=STORAGE_ID, key='done_count', value=data)
+
+
+def _delete_stream_from_done_counter(correlation_id:str):
+    counters = _load_done_count_from_storage()
+    counters.pop(correlation_id, None)
+    _update_done_counter(counters=counters)
 
 
 def _done_messages_sent(correlation_id:str) -> bool:
@@ -493,3 +500,21 @@ def _load_stream(correlation_id:str) -> Generator[bytes, None, None]:
         
         yield value
         id += 1
+
+
+def _delete_stream(correlation_id:str):
+    """Removes stream data from the worker storage. After this function executes
+    successfully, the stream will no longer be considered by this worker."""
+
+    print('[ DELETE ] start', correlation_id)
+
+    streams = _get_active_streams()
+    if correlation_id in streams:
+        streams.remove(correlation_id)
+        _store_active_streams(active_streams=streams)
+    
+    # this should be the last operation because after this is done, the stream
+    # will be effectively considered deleted by this worker
+    _delete_stream_from_done_counter(correlation_id=correlation_id)
+
+    print('[ DELETE ] finished', correlation_id)

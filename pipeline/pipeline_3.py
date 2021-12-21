@@ -128,9 +128,9 @@ def top_10_tags_callback(channel:BlockingChannel, worker_id:str):
     for correlation_id, body in consume_from(channel, 'top_10_tags', remove_duplicates=True):
         if isinstance(body, END_OF_STREAM):
             # build final result
-            response = '====================='
-            response = '= Top tags per year ='
-            response = '====================='
+            response  = '=====================\n'
+            response += '= Top tags per year =\n'
+            response += '=====================\n'
             for year in sorted(tags_per_year[correlation_id]):
                 response += f'{year}\n'
                 top_10 = tags_per_year[correlation_id][year].most_common(10)

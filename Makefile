@@ -19,4 +19,8 @@ client:
 					--network $(shell basename $(CURDIR) | sed 's/-//')_default \
 					tp3-client client.py
 
+test-kill-joiner:
+	rm -rf killer_conf
+	cp -r tests/kill_joiner ./killer_conf
+
 .PHONY: client image run

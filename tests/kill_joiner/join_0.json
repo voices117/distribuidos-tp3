@@ -1,0 +1,22 @@
+{
+    "before_sending_done": {
+        "stage": "before_sending_done",
+        "params": {
+            "correlation_id": "1234"
+        }
+    },
+    "after_msg_1": {
+        "stage": "after_msg",
+        "params": {
+            "correlation_id": "1234",
+            "msg_count": 1
+        }
+    },
+    "after_msg_2": {
+        "stage": "after_msg",
+        "params": {
+            "correlation_id": "1234",
+            "msg_count": 2
+        }
+    }
+}

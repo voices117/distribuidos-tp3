@@ -65,7 +65,7 @@ Para ejecutar el cliente primero es necesario generar la imagen de Docker. Luego
 
  1. `LINES_PER_CHUNK`: cantidad de líneas por chunk que se envía al pipeline.
  2. `NUM_CHUNKS`: cantidad de chunks de cada archivo a enviar. De ser un valor negativo, se envía el archivo completo.
- 3. `CORRELATION_ID`: fuerza a utilizar el ID de request indicado.
+ 3. `CORRELATION_ID` (optional): fuerza a utilizar el ID de request indicado. De no especificarse, el sistema se encarga de generar un ID único para identificar el request.
 
 
 ```shell

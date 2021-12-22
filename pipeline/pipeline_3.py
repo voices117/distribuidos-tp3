@@ -133,9 +133,13 @@ def top_10_tags_callback(channel:BlockingChannel, worker_id:str):
             response += '=====================\n'
             for year in sorted(tags_per_year[correlation_id]):
                 response += f'{year}\n'
-                top_10 = tags_per_year[correlation_id][year].most_common(10)
-                for tag, score in top_10:
+                top_10 = tags_per_year[correlation_id][year].most_common()
+                i = 0
+                for tag, score in sorted(top_10, key=lambda x: (x[1],x[0]), reverse=True):
+                    i+=1
                     response += f'    {tag} ({score})\n'
+                    if i == 10:
+                        break
 
             send_to_client(channel=channel, correlation_id=correlation_id, body=response.encode('utf-8'))
 

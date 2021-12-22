@@ -10,7 +10,7 @@ class Read():
         self.source = req.get("source")
 
     def execute(self, librarian):
-        print(f'Executing read: client:{self.client} stream: {self.stream}')
+        #print(f'Executing read: client:{self.client} stream: {self.stream}')
         try:
             if self.metadata:
                 return { "status": constants.OK_STATUS, "message": librarian.library.list_files() }

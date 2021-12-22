@@ -10,7 +10,7 @@ class Write():
         self.source = req.get("source")
 
     def execute(self, librarian):
-        print(f'Executing write: client:{self.client}, stream:{self.stream}')
+        #print(f'Executing write: client:{self.client}, stream:{self.stream}')
         librarian.library.handle_write(self)
         return { "status": constants.OK_STATUS }
             

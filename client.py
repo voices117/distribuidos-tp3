@@ -6,7 +6,10 @@ import middleware
 
 from io import StringIO
 from typing import List
+import sys
 
+def perror(msg, end='\n'):
+    sys.stderr.write(msg + end)
 
 def _serialize_chunk(header:List[str], chunk:List[str]):
     """Serializes the given CSV chunk including the header."""
@@ -63,7 +66,7 @@ def upload_csv(routing_key:str, file_name:str, lines:int, chunks:int, correlatio
 
     try:
         for i, chunk in enumerate(read_file_by_chunks(file_name=file_name, lines=lines, chunks=chunks)):
-            print(f'sending chunk {i}   ', end='\r')
+            perror(f'sending chunk {i}   ', end='\r')
 
             middleware.send_data(chunk.encode('utf-8'), channel=channel, worker=routing_key, correlation_id=correlation_id)
 
@@ -85,7 +88,7 @@ if __name__ == '__main__':
         correlation_id=CORRELATION_ID
     )
 
-    print('start client using request ID', correlation_id)
+    perror(f'start client using request ID {correlation_id}')
 
     def upload_answers():
         upload_csv(
@@ -110,13 +113,13 @@ if __name__ == '__main__':
         t1 = threading.Thread(target=upload_questions)
         t2 = threading.Thread(target=upload_answers)
 
-        print('starting threads')
+        perror('starting threads')
         t1.start(); t2.start()
 
         t1.join(); t2.join()
-        print('joined threads')
+        perror('joined threads')
 
-        print('waiting for response...')
+        perror('waiting for response...')
         # expects 3 messages (one por each result in the output of the pipeline)
         for msg in middleware.consume_response(channel=channel, queue_name=response_queue):
             # prints the pipeline response

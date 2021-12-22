@@ -11,7 +11,7 @@ class Delete():
         return { "status": constants.OK_STATUS }
 
     def execute(self, librarian):
-        print("Executing delete: ", self.to_dictionary())
+        #print("Executing delete: ", self.to_dictionary())
         librarian.library.handle_delete(self)
         return { "status": constants.OK_STATUS }
 

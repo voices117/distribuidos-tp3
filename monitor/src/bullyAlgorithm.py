@@ -7,8 +7,11 @@ import time
 import cgi
 from queue import Queue
 
+from services import killer
+
 ELECTION_SIGNAL = -1
 UNKNOWN_LIDER_ID = -1
+WAIT_TIME = 1
 
 class Bully(Thread):
     def __init__(self, config) -> None:
@@ -24,11 +27,15 @@ class Bully(Thread):
         self.server = webServer(self.addr, self.port)
         self.lock = Lock()
         self.running = True
+        self.tries = 0
+        #self.killerCount = 0
         
         logging.basicConfig(level=logging.INFO)
         self._printConfig()
+        self.server.setDaemon(True)
         self.server.start()
         Thread.__init__(self)
+        self.setDaemon(True)
     
     def _printConfig(self):
         logging.info(f'Nodo: {self.Id}, Timeout: {self.timeout}, WebServer: {self.addr}:{self.port}')
@@ -67,14 +74,14 @@ class Bully(Thread):
     def _waitAckSignal(self):
         timer = 0
         message = self.server.getAck()
-        while timer != self.timeout:
+        while timer < self.timeout:
             if message:
                 if message != self.Id:
                     logging.info(f'[nodo: {self.Id}] an error ocurred, id receibed {message}')
                     return False
                 return True
-            time.sleep(1)
-            timer += 1
+            time.sleep(WAIT_TIME)
+            timer += WAIT_TIME
             message = self.server.getAck()
         return True
 
@@ -118,9 +125,9 @@ class Bully(Thread):
         i = 0
         while self.running:
             if not self.Initilize:
+                self.Initilize = True
                 with self.lock:
                     self._startElection()
-                self.Initilize = True
             else:
                 if not self.server.emptyInbox():
                     self.lock.acquire()
@@ -130,6 +137,7 @@ class Bully(Thread):
                         if  message == ELECTION_SIGNAL:
                             self._startElection()
                         else:
+                            #coordinator message
                             if self.coordinator:
                                 try:
                                     coordinatorAddr = self.Nodes[str(message)]
@@ -138,22 +146,30 @@ class Bully(Thread):
                                     logging.info(f'leadership passed')
                                 except:
                                     logging.info('an error occurred while trying to pass the leadership')
-                                    continue
-                            logging.info(f'changing leader, new leaer {message}')    
+                            logging.info(f'changing leader, new leader {message}')    
                             self.coordinatorId = message
                             self.coordinator = False
                     self.lock.release()
                 elif self.coordinator:
                     logging.info(f'[nodo: {self.Id}] i am the leader')
-                    time.sleep(2)
-                    if i%5 == 0:
-                        self._postNewLider()
-                    i+=1
-                    continue
+                    ##self.killerCount += 1
+                    ##killer.kill_if_applies(stage='after_5_rounds_being_leader', round=self.killerCount, id=str(self.Id))
+                    time.sleep(WAIT_TIME)
+                    #if i%5 == 0:
+                    #    self._postNewLider()
+                    #i+=1
                 elif self.coordinatorIsAlive():
-                    logging.info(f'[nodo: {self.Id}] coordinator {self.coordinatorId} alive')
-                    time.sleep(2.0)
-                    continue
+                    if self.coordinatorId != UNKNOWN_LIDER_ID:
+                        self.tries = 0
+                        logging.info(f'[nodo: {self.Id}] coordinator {self.coordinatorId} alive')
+                    else:
+                        self.tries += WAIT_TIME
+                        if self.tries > self.timeout:
+                            logging.info(f'[nodo: {self.Id}] coordinator message did not arrive')        
+                            self.tries = 0
+                            with self.lock:
+                                self._startElection()
+                    time.sleep(WAIT_TIME)
                 else:
                     logging.info(f'[nodo: {self.Id}] the leader has died')
                     with self.lock:

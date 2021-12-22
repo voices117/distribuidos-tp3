@@ -11,8 +11,8 @@ WORKERS = {
     'client_questions': 1,  # not an actual worker, but helps to avoid special cases
 
     # input
-    'answers_csv_parser': 2,
-    'questions_csv_parser': 2,
+    'answers_csv_parser': 1,
+    'questions_csv_parser': 1,
 
     # pipeline 1
     'filter_by_score': 2,
@@ -99,3 +99,4 @@ MAX_QUEUE_SIZE=5
 TIMEOUT=1
 
 NUMBER_OF_MONITOR_CONTAINERS = 3
+BULLY_TIMEOUT = 3

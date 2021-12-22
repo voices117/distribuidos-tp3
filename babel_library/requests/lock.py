@@ -6,6 +6,7 @@ class Lock():
         self.client = req["client"]
         self.stream = req["stream"]
         self.source = req.get("source")
+        self.timeout = req["timeout"]
         
     def execute(self, librarian):
         print(f'Executing lock: client:{self.client}, stream:{self.stream}')

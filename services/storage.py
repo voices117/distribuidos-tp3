@@ -1,6 +1,7 @@
 """
 This module interfaces with the distributed storage service.
 """
+from time import sleep
 from babel_library_client.borges import Borges
 from babel_library.commons import constants 
 import base64
@@ -46,7 +47,17 @@ def delete(id:str, key:str):
     storage_client.delete(id, key)
 
 def lock(id, key):
-    return storage_client.try_lock(id, key)
+    for _ in range(0,5):
+        res = storage_client.try_lock(id, key)
+        if res["status"] == 200:
+            return True
+        sleep(1)
+
+    return False 
 
 def unlock(id, key):
-    return storage_client.unlock(id, key)
+    res = storage_client.unlock(id, key)
+    if res["status"] == 200:
+        return True
+    else:
+        return False

@@ -6,6 +6,7 @@ import json
 from babel_library.commons.helpers import tryParse, get_correlation_id
 import babel_library.commons.constants as constants
 import logging
+import datetime
 
 RABBITMQ_ADDRESS = os.environ.get('RABBITMQ_ADDRESS') or 'localhost'
 
@@ -93,10 +94,12 @@ class Borges:
         return self.execute(req)
 
     def try_lock(self, client, stream):
+        timeout = (datetime.datetime.utcnow() + datetime.timedelta(seconds=5)).isoformat()
         req = {
             "type": constants.LOCK_REQUEST,
             "client": client,
-            "stream": stream
+            "stream": stream,
+            "timeout": timeout
         }
         return self.execute(req)
 

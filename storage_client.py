@@ -8,5 +8,5 @@ client = Borges(TIMEOUT)
 #print(client.read(1, 2))
 #print(client.delete(1,2))
 
-#print(client.try_lock(1,2))
+print(client.try_lock(1,2))
 #print(client.unlock(1,2))

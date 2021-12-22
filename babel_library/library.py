@@ -1,8 +1,10 @@
+import datetime
 import os
 import babel_library.commons.constants as constants
 from pathlib import Path
 from babel_library.commons.helpers import intTryParse
 import json
+from datetime import datetime, date
 
 WORKER_ID = intTryParse(os.environ.get('WORKER_ID')) or 1
 
@@ -31,8 +33,14 @@ class Library:
 
     def handle_lock(self, request):
         path = f'./data_{WORKER_ID}/{request.client}/{request.stream}'
+
         if os.path.exists(path):
-            raise Exception("Lock already aquired")
+            with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', "r") as file:
+                content = file.read()
+                expiry = datetime.fromisoformat(content)
+                print(expiry)
+                if datetime.utcnow() < expiry:
+                    raise Exception("Lock already aquired")
 
         try: 
             Path(f'./data_{WORKER_ID}/{request.client}').mkdir(parents=True, exist_ok=True)
@@ -40,7 +48,7 @@ class Library:
             raise Exception(str(error)) 
 
         with open(f'./data_{WORKER_ID}/{request.client}/{request.stream}', 'w') as file:
-            file.write('locked')
+            file.write(request.timeout)
 
     def handle_unlock(self, request):
         try:

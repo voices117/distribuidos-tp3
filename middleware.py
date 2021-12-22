@@ -167,19 +167,25 @@ def send_to_client(channel:BlockingChannel, correlation_id:str, body:bytes):
     )
 
 
-def build_response_queue(rbmq_address:str, correlation_id:str) -> Tuple[BlockingConnection, BlockingChannel, str]:
+def build_response_queue(rbmq_address:str, correlation_id:str) -> Tuple[BlockingConnection, BlockingChannel, str, str]:
     """Builds the queue that clients can use to recover the final pipeline
-    response once it finishes."""
+    response once it finishes.
+    Returns the new connection, channel, queue name and correlation ID of the request."""
 
     connection = pika.BlockingConnection(pika.ConnectionParameters(rbmq_address))
     channel = connection.channel()
 
-    result = channel.queue_declare(queue='', exclusive=True)
+    result = channel.queue_declare(queue='', exclusive=True, auto_delete=True)
     response_queue:str = result.method.queue
+
+    if not correlation_id:
+        # unless explicitly set, we use the queue name (rabbit ensures it is unique)
+        # as correlation ID. We also add a timestamp for more entropy
+        correlation_id = response_queue + str(time.monotonic())
 
     # bind the queue to listen to messages posted for our correlation ID
     channel.queue_bind(exchange=CLIENT_RESPONSE_EXCHANGE, queue=response_queue, routing_key=correlation_id)
-    return connection, channel, response_queue
+    return connection, channel, response_queue, correlation_id
 
 
 def consume_response(channel:BlockingChannel, queue_name:str) -> Generator[str, None, None]:

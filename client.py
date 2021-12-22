@@ -78,7 +78,14 @@ if __name__ == '__main__':
 
     LINES_PER_CHUNK = int(os.environ.get('LINES_PER_CHUNK', 1000))
     NUM_CHUNKS = int(os.environ.get('NUM_CHUNKS', -1))
-    CORRELATION_ID = os.environ.get('CORRELATION_ID')  # TODO: get this from the service
+    CORRELATION_ID = os.environ.get('CORRELATION_ID')
+
+    connection, channel, response_queue, correlation_id = middleware.build_response_queue(
+        rbmq_address=RABBITMQ_ADDRESS,
+        correlation_id=CORRELATION_ID
+    )
+
+    print('start client using request ID', correlation_id)
 
     def upload_answers():
         upload_csv(
@@ -86,7 +93,7 @@ if __name__ == '__main__':
             file_name='data/answers.csv',
             lines=LINES_PER_CHUNK,
             chunks=NUM_CHUNKS,
-            correlation_id=CORRELATION_ID
+            correlation_id=correlation_id
         )
 
     def upload_questions():
@@ -95,14 +102,9 @@ if __name__ == '__main__':
             file_name='data/questions.csv',
             lines=LINES_PER_CHUNK,
             chunks=NUM_CHUNKS,
-            correlation_id=CORRELATION_ID
+            correlation_id=correlation_id
         )
 
-
-    connection, channel, response_queue = middleware.build_response_queue(
-        rbmq_address=RABBITMQ_ADDRESS,
-        correlation_id=CORRELATION_ID
-    )
 
     try:
         t1 = threading.Thread(target=upload_questions)

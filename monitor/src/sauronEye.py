@@ -7,6 +7,8 @@ from signal import signal, SIGTERM
 
 from bullyAlgorithm import Bully
 
+from services import killer
+
 OK = 0
 
 class sauronEye:
@@ -17,8 +19,10 @@ class sauronEye:
             self.Bully = Bully(data)
             self.Nodes = data['systemNodes']
             self.timeout = data['timeout']
+            self.Id = data['id']
         self.running = True    
         self.Bully.start()
+        self.killerCount = 0
         logging.basicConfig(level=logging.INFO)
         signal(SIGTERM, self.__handler)
 
@@ -62,7 +66,9 @@ class sauronEye:
             if not self.Bully.amICoordinator():
                 logging.info('slave node')
             else:
+                killer.kill_if_applies(stage='after_5_rounds_being_leader', round=self.killerCount, id=str(self.Id))
                 self.loop()
+                self.killerCount += 1
             time.sleep(6) 
         logging.info('bye bye sauron')
 

@@ -7,6 +7,8 @@ import time
 import cgi
 from queue import Queue
 
+from services import killer
+
 ELECTION_SIGNAL = -1
 UNKNOWN_LIDER_ID = -1
 WAIT_TIME = 1
@@ -26,11 +28,14 @@ class Bully(Thread):
         self.lock = Lock()
         self.running = True
         self.tries = 0
+        #self.killerCount = 0
         
         logging.basicConfig(level=logging.INFO)
         self._printConfig()
+        self.server.setDaemon(True)
         self.server.start()
         Thread.__init__(self)
+        self.setDaemon(True)
     
     def _printConfig(self):
         logging.info(f'Nodo: {self.Id}, Timeout: {self.timeout}, WebServer: {self.addr}:{self.port}')
@@ -147,10 +152,12 @@ class Bully(Thread):
                     self.lock.release()
                 elif self.coordinator:
                     logging.info(f'[nodo: {self.Id}] i am the leader')
+                    ##self.killerCount += 1
+                    ##killer.kill_if_applies(stage='after_5_rounds_being_leader', round=self.killerCount, id=str(self.Id))
                     time.sleep(WAIT_TIME)
-                    if i%5 == 0:
-                        self._postNewLider()
-                    i+=1
+                    #if i%5 == 0:
+                    #    self._postNewLider()
+                    #i+=1
                 elif self.coordinatorIsAlive():
                     if self.coordinatorId != UNKNOWN_LIDER_ID:
                         self.tries = 0

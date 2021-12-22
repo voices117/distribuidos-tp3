@@ -54,6 +54,7 @@ services:
 SERVICE_TEMPLATE = """
     {worker_type}_{worker_id}:
         <<: *base-worker
+        container_name: {worker_type}_{worker_id}
         environment:
             <<: *common-env-variables
             WORKER_TASK: {worker_type}
@@ -82,11 +83,15 @@ MONITOR_SERVICE_TEMPLATE = """
     monitor_{number}:
         container_name: monitor_{number}
         build:
-          context: ./monitor/src
-          dockerfile: Dockerfile
+          context: .
+          dockerfile: Dockerfile.monitor
+        environment:
+            WORKER_TASK: monitor
+            WORKER_ID: {number}  
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
           - ./monitor/src/config{number}.json:/config.json
+          - ./monitor/src/killer_conf:/app/killer_conf
 """
 
 def create_docker_compose():
@@ -117,8 +122,8 @@ def create_docker_compose():
     #####################
     #####################
 
-    #for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
-    #    content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
+    for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
+        content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
 
 
     return content

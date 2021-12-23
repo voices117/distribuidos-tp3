@@ -222,6 +222,10 @@ class webServer(Thread):
 def make_handler(messageOutput, ackOutput):
 
     class MyHandler(BaseHTTPRequestHandler):
+
+        def log_message(self, format, *args):
+            pass
+
         def do_HEAD(s):
             s.send_response(200)
             s.send_header("Content-type", "text/html")
@@ -265,7 +269,7 @@ def make_handler(messageOutput, ackOutput):
                 if ctype == 'application/json':
                     length = int(s.headers.get('content-length'))
                     message = json.loads(s.rfile.read(length))
-                    logging.info(f'recibi: {message}')
+                    logging.info(f'[HTTP server] recibi: {message}')
                     ackOutput.put(message['id'])
                     s.send_response(200)
                     s.send_header("Content-type", "application/json")

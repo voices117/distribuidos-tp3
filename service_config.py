@@ -100,3 +100,4 @@ TIMEOUT=1
 
 NUMBER_OF_MONITOR_CONTAINERS = 3
 BULLY_TIMEOUT = 3
+CONTAINER_EXCEPTIONS = ['client_answers', 'client_questions']

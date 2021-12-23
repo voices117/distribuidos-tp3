@@ -22,7 +22,7 @@ def join_callback(channel:BlockingChannel, worker_id:str):
 
     batch_id:Dict[str, int] = defaultdict(int)
     questions, answers = defaultdict(dict), defaultdict(dict)
-    for correlation_id, body in consume_from(channel, 'join', remove_duplicates=True, check_as_list=True):
+    for correlation_id, body in consume_from(channel, 'join', remove_duplicates=True):
         if isinstance(body, END_OF_STREAM):
             questions.pop(correlation_id, None)
             answers.pop(correlation_id, None)
@@ -31,7 +31,7 @@ def join_callback(channel:BlockingChannel, worker_id:str):
             
         batch = []
         
-        data = body  # JSON already parsed
+        data = json.loads(body)
         if 'questions' in data:
             # we yield each new question received to the next stage
             for question in data['questions']:
@@ -84,7 +84,7 @@ def score_by_tag_and_year_callback(channel:BlockingChannel, worker_id:str):
 
     batch_id:Dict[str, int] = defaultdict(int)
     received, tags_per_year = defaultdict(int), defaultdict(lambda: defaultdict(Counter))
-    for correlation_id, body in consume_from(channel, 'score_by_tag_and_year', remove_duplicates=True):
+    for correlation_id, body in consume_from(channel, 'score_by_tag_and_year', remove_duplicates=True, check_as_list=True):
         if isinstance(body, END_OF_STREAM):
             # flush remaining data
             data = {
@@ -99,14 +99,14 @@ def score_by_tag_and_year_callback(channel:BlockingChannel, worker_id:str):
             batch_id.pop(correlation_id, None)
             continue
 
-        rows = json.loads(body)
-        for row in rows:
+        # body is already parsed 
+        for row in body:
             year = row['CreationDate'][:4]
 
             tags = {tag: int(row['Score']) for tag in row['Tags'].split(' ')}
             tags_per_year[correlation_id][year].update(tags)
             
-        received[correlation_id] += len(rows)
+        received[correlation_id] += len(body)
         if received[correlation_id] > 500:
             # once we accumulated a sufficiently large batch, we pass it to the
             # next stage

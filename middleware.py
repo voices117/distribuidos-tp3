@@ -345,17 +345,32 @@ def consume_from(
             _store_active_streams(active_streams)
 
         if remove_duplicates:
-            if was_msg_seen(seen_set=seen_messages, msg=body, correlation_id=cid):
-                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-                continue
-
-            # store the message in case we need to replay the stream after a crash
-            store_msg(data=body, correlation_id=cid, id=msg_count[cid])
             if check_as_list:
                 body = json.loads(body)
+                assert isinstance(body, list), type(body)
+                delete_list = []
+                for i, elem in enumerate(body):
+                    if was_msg_seen(seen_set=seen_messages, msg=json.dumps(elem).encode('utf-8'), correlation_id=cid):
+                        delete_list.append(i)
+
+                for delete_count, i in enumerate(delete_list):
+                    del body[i - delete_count]
+
+                if not body:
+                    channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+                    continue
+            else:
+                if was_msg_seen(seen_set=seen_messages, msg=body, correlation_id=cid):
+                    channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+                    continue
+
+            # store the message in case we need to replay the stream after a crash
+            if check_as_list:
+                store_msg(data=json.dumps(body).encode('utf-8'), correlation_id=cid, id=msg_count[cid])
                 for elem in body:
                     mark_message_as_seen(seen_set=seen_messages, msg=json.dumps(elem).encode('utf-8'), correlation_id=cid)
             else:
+                store_msg(data=body, correlation_id=cid, id=msg_count[cid])
                 mark_message_as_seen(seen_set=seen_messages, msg=body, correlation_id=cid)
 
         yield cid, body

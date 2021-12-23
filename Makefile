@@ -6,7 +6,7 @@ run: docker-compose.yml
 	@COMPOSE_PARALLEL_LIMIT=30 docker-compose up --remove-orphans
 
 clean:
-	rm -rf data_* logs killer_conf
+	rm -rf data_* logs killer_conf ./monitor/src/config*
 
 image:
 	docker build -t tp3-client .

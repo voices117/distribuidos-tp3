@@ -7,6 +7,7 @@ from babel_library.requests.unlock import Unlock
 from babel_library.library import Library
 from babel_library_client.borges import Borges
 from babel_library.commons.helpers import intTryParse, tryParse
+from services import killer
 import babel_library.commons.constants as constants
 import json
 import middleware
@@ -17,6 +18,8 @@ RABBITMQ_ADDRESS = os.environ.get('RABBITMQ_ADDRESS') or 'localhost'
 
 class Librarian:
     def __init__(self):
+        self.read_counter = 0
+        self.write_counter = 0
         self.library = Library()
         self.recover()
 
@@ -31,6 +34,9 @@ class Librarian:
          and dispatches the requests to the other librarians to get quorum"""
         request = tryParse(body)
         req = self.parse(request)
+
+        killer.kill_if_applies("handling_request", read_count=self.read_counter)
+        killer.kill_if_applies("handling_request", write_count=self.write_counter)
 
         if req.source != WORKER_ID:
             res = req.execute(self)
@@ -49,8 +55,10 @@ class Librarian:
 
     def parse(self, request):
         if request["type"] == constants.READ_REQUEST:
+            self.read_counter+=1
             return Read(request)
         elif request["type"] == constants.WRITE_REQUEST:
+            self.write_counter+=1
             return Write(request)
         elif request["type"] == constants.DELETE_REQUEST:
             return Delete(request)

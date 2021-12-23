@@ -70,28 +70,23 @@ SHARDED = [
 LIBRARIANS=[
     {
         "id": 1,
-        "name": "librarian_1",
-        "port": 5000
+        "name": "librarian_1"
     },
     {
         "id": 2,
-        "name": "librarian_2",
-        "port": 5001
+        "name": "librarian_2"
     },
     {
         "id": 3,
-        "name": "librarian_3",
-        "port": 5002
+        "name": "librarian_3"
     },
     {
         "id": 4,
-        "name": "librarian_4",
-        "port": 5003
+        "name": "librarian_4"
     },
     {
         "id": 5,
-        "name": "librarian_5",
-        "port": 5004
+        "name": "librarian_5"
     }
 ]
 

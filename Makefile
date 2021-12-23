@@ -25,4 +25,7 @@ client:
 test-kill-joiner: clean
 	cp -r tests/kill_joiner ./killer_conf
 
+test-kill-librarians: clean
+	cp -r tests/kill_storage ./killer_conf
+
 .PHONY: client image run test-kill-joiner clean

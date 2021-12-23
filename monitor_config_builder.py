@@ -19,7 +19,6 @@ def get_system_nodes():
 
     for librarian in LIBRARIANS:
         name = librarian['name']
-        port = librarian['port']
         systemNodes[name] = f'http://{name}:80'
 
     for worker_type_name, replicas in WORKERS.items():

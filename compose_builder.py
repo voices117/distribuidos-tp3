@@ -59,12 +59,6 @@ STORAGE_SERVICE_TEMPLATE = """
             WORKER_ID: {worker_id}
             WORKER_TASK: 'storage'
             TIMEOUT: {timeout}
-            MAX_QUEUE_SIZE: {max_queue_size}
-            PORT: {port}
-            QUORUM: {quorum}
-            ARCHITECTURE: '{architecture}'
-        ports:
-            - "{port}:{port}"
 
 """
 
@@ -103,16 +97,12 @@ def create_docker_compose():
     for lib in LIBRARIANS:
        content += STORAGE_SERVICE_TEMPLATE.format(name=lib["name"],
        worker_id=lib["id"],
-       timeout=TIMEOUT,
-       max_queue_size=MAX_QUEUE_SIZE,
-       port=lib["port"],
-       quorum=quorum,
-       architecture=architecture)
+       timeout=TIMEOUT)
     #####################
     #####################
 
-    for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
-        content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
+    # for monitmonitor_number in range(1, NUMBER_OF_MONITOR_CONTAINERS+1):
+    #     content += MONITOR_SERVICE_TEMPLATE.format(number = monitmonitor_number)
 
 
     return content

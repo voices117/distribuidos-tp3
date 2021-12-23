@@ -5,6 +5,9 @@ docker-compose.yml: service_config.py compose_builder.py
 run: docker-compose.yml
 	@COMPOSE_PARALLEL_LIMIT=30 docker-compose up --remove-orphans
 
+clean:
+	rm -rf data_* logs killer_conf
+
 image:
 	docker build -t tp3-client .
 
@@ -19,8 +22,7 @@ client:
 					--network $(shell basename $(CURDIR) | sed 's/-//')_default \
 					tp3-client client.py
 
-test-kill-joiner:
-	rm -rf killer_conf
+test-kill-joiner: clean
 	cp -r tests/kill_joiner ./killer_conf
 
-.PHONY: client image run
+.PHONY: client image run test-kill-joiner clean

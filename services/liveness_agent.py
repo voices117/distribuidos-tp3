@@ -54,7 +54,8 @@ def start_server_in_new_thread(listen_port:int = 80) -> threading.Thread:
     logging.info(f'starting liveness server in new thread in port {listen_port}')
 
     t = threading.Thread(
-        target=lambda: start_server(listen_port=listen_port)
+        target=lambda: start_server(listen_port=listen_port),
+        daemon=True
     )
     t.start()
     return t

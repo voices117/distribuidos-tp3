@@ -25,7 +25,6 @@ class Librarian:
 
         self.init_rabbit()
         self.init_action_input_queue()
-        self.init_read_input_queue()
         self.channel.start_consuming()
         print(f"Librarian ready...")
 
@@ -104,9 +103,3 @@ class Librarian:
         self.channel.queue_bind(exchange='storage', queue=queue_name)
 
         self.channel.basic_consume(queue=queue_name, on_message_callback=self.handle, auto_ack=False)
-        
-
-    def init_read_input_queue(self):
-        self.channel.exchange_declare(exchange='storage', exchange_type='fanout')
-        self.channel.queue_declare(queue='reads_queue', durable=True)
-        self.channel.basic_consume(queue='reads_queue', on_message_callback=self.handle, auto_ack=False)

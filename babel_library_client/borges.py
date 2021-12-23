@@ -131,14 +131,9 @@ class Borges:
     def execute(self, req):
         corr_id = get_correlation_id()
 
-        if req["type"] == constants.READ_REQUEST:
-            self.channel.basic_publish(exchange='', routing_key='reads_queue', body=json.dumps(req),
-                properties=pika.BasicProperties(reply_to=self.callback_queue, correlation_id=corr_id)
-            )
-        else:
-            self.channel.basic_publish(exchange='storage', routing_key='', body=json.dumps(req),
-                properties=pika.BasicProperties(reply_to=self.callback_queue, correlation_id=corr_id)
-            )
+        self.channel.basic_publish(exchange='storage', routing_key='', body=json.dumps(req),
+            properties=pika.BasicProperties(reply_to=self.callback_queue, correlation_id=corr_id)
+        )
 
         return self.wait_for_response(corr_id)
         

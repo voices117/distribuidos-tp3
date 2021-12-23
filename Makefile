@@ -3,9 +3,9 @@ docker-compose.yml: service_config.py compose_builder.py
 	python compose_builder.py > docker-compose.yml
 
 run: docker-compose.yml
-	@COMPOSE_PARALLEL_LIMIT=30 docker-compose up -d --remove-orphans rabbitmq
+	@COMPOSE_PARALLEL_LIMIT=200 docker-compose up -d --remove-orphans rabbitmq
 	@sleep 3
-	@COMPOSE_PARALLEL_LIMIT=30 docker-compose up --remove-orphans
+	@COMPOSE_PARALLEL_LIMIT=200 docker-compose up --remove-orphans
 
 clean:
 	rm -rf data_* logs killer_conf ./monitor/src/config*
@@ -26,5 +26,8 @@ client:
 
 test-kill-joiner: clean
 	cp -r tests/kill_joiner ./killer_conf
+
+test-kill-librarians: clean
+	cp -r tests/kill_storage ./killer_conf
 
 .PHONY: client image run test-kill-joiner clean

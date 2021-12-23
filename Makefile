@@ -24,10 +24,16 @@ client:
 					--network $(shell basename $(CURDIR) | sed 's/-//')_default \
 					tp3-client client.py
 
-test-kill-joiner: clean
-	cp -r tests/kill_joiner ./killer_conf
+case-1: clean
+	python3 monitor_config_builder.py
+	cp -r tests/case_1 ./killer_conf
 
-test-kill-librarians: clean
-	cp -r tests/kill_storage ./killer_conf
+case-2: clean
+	python3 monitor_config_builder.py
+	cp -r tests/case_2 ./killer_conf
+
+case-3: clean
+	python3 monitor_config_builder.py
+	cp -r tests/case_3 ./killer_conf
 
 .PHONY: client image run test-kill-joiner clean

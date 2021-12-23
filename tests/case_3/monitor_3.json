@@ -1,0 +1,9 @@
+{
+    "kill on raund 10 leader with id 3": {
+        "stage": "after_5_rounds_being_leader",
+        "params": {
+            "round": 5,
+            "id": "3"
+        }
+    }
+}

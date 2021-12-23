@@ -1,0 +1,8 @@
+{
+    "handling_request_1": {
+        "stage": "handling_write_request",
+        "params": {
+            "write_counter": 50
+        }
+    }
+}

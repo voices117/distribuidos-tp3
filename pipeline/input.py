@@ -35,8 +35,8 @@ def answers_csv_parser_callback(channel:BlockingChannel, worker_id:str):
         send_data(data, channel=channel, worker='filter_by_score', correlation_id=correlation_id)
 
         # collect batches of rows to join to avoid sending too many messages
-        for row in _select_cols(rows, ['ParentId', 'CreationDate', 'Score']):
-            shard = hash(row['ParentId']) % service_config.WORKERS['join']
+        for row in _select_cols(rows, ['Id', 'ParentId', 'CreationDate', 'Score']):
+            shard = int(row['ParentId']) % service_config.WORKERS['join']
             sharded_data[shard].append(row)
 
         # regularly flushes data to avoid chunks from getting too big
@@ -49,7 +49,6 @@ def answers_csv_parser_callback(channel:BlockingChannel, worker_id:str):
 def questions_csv_parser_callback(channel:BlockingChannel, worker_id:str):
     """Parses CSV chunks of questions and sends the relevant columns of each
     row to the next stages of the pipeline."""
-
 
     for correlation_id, body in consume_from(channel, 'questions_csv_parser'):
         if isinstance(body, END_OF_STREAM):
@@ -65,7 +64,7 @@ def questions_csv_parser_callback(channel:BlockingChannel, worker_id:str):
 
         # collect batches of rows to join to avoid sending too many messages
         for row in _select_cols(rows, ['Id', 'Tags', 'Score', 'CreationDate']):
-            shard = hash(row['Id']) % service_config.WORKERS['join']
+            shard = int(row['Id']) % service_config.WORKERS['join']
             sharded_data[shard].append(row)
 
         for shard, data in enumerate(sharded_data):

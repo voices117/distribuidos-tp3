@@ -27,6 +27,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         data = {'status': 'ok'}
         self._send_json(data=data, status=200)
 
+    def log_message(self, *args, **kw):
+        pass
+
     def _bad_request(self, msg:str, status:int = 400):
         return self._send_json(data={'error': msg}, status=status)
 

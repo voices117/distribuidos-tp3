@@ -4,8 +4,9 @@ Top 10 of tags by total score for each year.
 """
 
 import json
-from typing import Dict
+import service_config
 
+from typing import Dict
 from middleware import END_OF_STREAM, USE_HASH, as_worker, consume_from, send_to_client, send_data
 from collections import defaultdict
 from pika.adapters.blocking_connection import BlockingChannel
@@ -21,7 +22,7 @@ def join_callback(channel:BlockingChannel, worker_id:str):
 
     batch_id:Dict[str, int] = defaultdict(int)
     questions, answers = defaultdict(dict), defaultdict(dict)
-    for correlation_id, body in consume_from(channel, 'join', remove_duplicates=True):
+    for correlation_id, body in consume_from(channel, 'join', remove_duplicates=True, check_as_list=True):
         if isinstance(body, END_OF_STREAM):
             questions.pop(correlation_id, None)
             answers.pop(correlation_id, None)
@@ -30,24 +31,28 @@ def join_callback(channel:BlockingChannel, worker_id:str):
             
         batch = []
         
-        data = json.loads(body)
+        data = body  # JSON already parsed
         if 'questions' in data:
             # we yield each new question received to the next stage
             for question in data['questions']:
+                assert int(question['Id']) % service_config.WORKERS['join'] == int(worker_id), (question, worker_id, service_config.WORKERS['join'])
+                assert question['Id'] not in questions[correlation_id], question['Id']
                 questions[correlation_id][question['Id']] = question
                 batch.append(question)
         elif 'answers' in data:
             # register the new answer in case we didn't receive the corresponding
             # question yet
             for answer in data['answers']:
-                answers[correlation_id][answer['ParentId']] = answer
+                assert int(answer['ParentId']) % service_config.WORKERS['join'] == int(worker_id), (answer, worker_id, service_config.WORKERS['join'])
+                assert answer['Id'] not in answers[correlation_id], answer['Id']
+                answers[correlation_id][answer['Id']] = answer
         else:
             assert False, f'unexpected message "{data}"'[:120]  # truncate the message in case is too large
 
         # find the answers of which we already have the matching question
         # and make the join
-        for parent_id, answer in answers[correlation_id].items():
-            if question := questions[correlation_id].get(parent_id):
+        for answer in answers[correlation_id].values():
+            if question := questions[correlation_id].get(answer['ParentId']):
                 answer['Tags'] = question['Tags']
                 batch.append(answer)
 
@@ -55,7 +60,7 @@ def join_callback(channel:BlockingChannel, worker_id:str):
         # anymore
         for joined in batch:
             if parent_id := joined.get('ParentId'):
-                del answers[correlation_id][parent_id]
+                del answers[correlation_id][joined['Id']]
 
         if batch:
             # send the new processed batch

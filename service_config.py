@@ -11,8 +11,8 @@ WORKERS = {
     'client_questions': 1,  # not an actual worker, but helps to avoid special cases
 
     # input
-    'answers_csv_parser': 1,
-    'questions_csv_parser': 1,
+    'answers_csv_parser': 2,
+    'questions_csv_parser': 2,
 
     # pipeline 1
     'filter_by_score': 2,
@@ -83,16 +83,6 @@ LIBRARIANS=[
         "name": "librarian_3",
         "port": 5002
     },
-    {
-        "id": 4,
-        "name": "librarian_4",
-        "port": 5003
-    },
-    {
-        "id": 5,
-        "name": "librarian_5",
-        "port": 5004
-    }
 ]
 
 MAX_QUEUE_SIZE=5

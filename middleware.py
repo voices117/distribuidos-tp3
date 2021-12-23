@@ -226,13 +226,16 @@ def as_worker(task_callback):
         # we need to check in case we were sending "DONE" messages and were interrupted
         # to do so, we check if we had already reached the expected number of packages
         # from the previous stage.
+        active_streams = _get_active_streams()
         for correlation_id, done_messages_received in _load_done_count_from_storage().items():
             print('[RECOVERY] send DONE messages for stream', correlation_id)
             send_done_messages_if_task_is_done(
                 channel=channel,
                 worker_name=worker_name,
                 correlation_id=correlation_id,
-                received_ids=done_messages_received
+                received_ids=done_messages_received,
+                seen_messages=None,
+                active_streams=active_streams
             )
         
         task_callback(channel, worker_id=WORKER_ID)
@@ -241,7 +244,12 @@ def as_worker(task_callback):
     return _wrapper
 
 
-def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:bool = False) -> Generator[Tuple[str, Union[END_OF_STREAM, bytes]], None, None]:
+def consume_from(
+        channel:BlockingChannel,
+        worker_name:str,
+        remove_duplicates:bool = False,
+        check_as_list=False
+    ) -> Generator[Tuple[str, Union[END_OF_STREAM, bytes]], None, None]:
     """Yields messages received from the indicated stage `worker_name` until
     all "DONE" signals are received."""
 
@@ -269,13 +277,19 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
         for correlation_id in active_streams:
             print('replaying stream', correlation_id)
             for body in _load_stream(correlation_id=correlation_id):
+                # make sure to update the message count for the rest of the stream
+                msg_count[correlation_id] += 1
+                if check_as_list:
+                    body = json.loads(body)
+                    for elem in body:
+                        mark_message_as_seen(seen_set=seen_messages, msg=json.dumps(elem).encode('utf-8'), correlation_id=correlation_id)
+                else:
+                    mark_message_as_seen(seen_set=seen_messages, msg=body, correlation_id=correlation_id)
+
                 yield correlation_id, body
 
                 killer.kill_if_applies(stage='during_stream_replay', correlation_id=correlation_id)
 
-                # make sure to update the message count for the rest of the stream
-                msg_count[correlation_id] += 1
-                mark_message_as_seen(seen_set=seen_messages, msg=body, correlation_id=correlation_id)
     
     # starts consuming events from the queue
     for method_frame, properties, body in channel.consume(queue_name, auto_ack=False):
@@ -316,7 +330,9 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
                     channel=channel,
                     worker_name=worker_name,
                     correlation_id=cid,
-                    received_ids=done_messages_received[cid]
+                    received_ids=done_messages_received[cid],
+                    seen_messages=seen_messages,
+                    active_streams=active_streams
                 )
             else:
                 channel.basic_nack(delivery_tag=method_frame.delivery_tag)
@@ -325,6 +341,7 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
 
         if cid not in active_streams:
             active_streams.add(cid)
+            print('new stream detected', cid)
             _store_active_streams(active_streams)
 
         if remove_duplicates:
@@ -334,7 +351,12 @@ def consume_from(channel:BlockingChannel, worker_name:str, remove_duplicates:boo
 
             # store the message in case we need to replay the stream after a crash
             store_msg(data=body, correlation_id=cid, id=msg_count[cid])
-            mark_message_as_seen(seen_set=seen_messages, msg=body, correlation_id=cid)
+            if check_as_list:
+                body = json.loads(body)
+                for elem in body:
+                    mark_message_as_seen(seen_set=seen_messages, msg=json.dumps(elem).encode('utf-8'), correlation_id=cid)
+            else:
+                mark_message_as_seen(seen_set=seen_messages, msg=body, correlation_id=cid)
 
         yield cid, body
 
@@ -365,20 +387,35 @@ def _handle_done_message(m:re.Match, received:Dict[str, list], correlation_id:st
         return True
 
 
-def send_done_messages_if_task_is_done(channel, worker_name:str, correlation_id:str, received_ids:List[int]) -> bool:
+def send_done_messages_if_task_is_done(
+        channel,
+        worker_name:str,
+        correlation_id:str,
+        received_ids:List[int],
+        seen_messages:Dict[str, Set[bytes]],
+        active_streams:Set[str]
+    ) -> bool:
     if _done_messages_sent(correlation_id):
-        _delete_stream(correlation_id=correlation_id)
+        _delete_stream(correlation_id=correlation_id, active_streams=active_streams)
+        if seen_messages:
+            del seen_messages[correlation_id]
 
         print('DONE messages were already sent, skipping')
         return False
 
     if _is_task_done(worker_name, received_ids):
+        print('sending DONE messages')
+
         # propagate the DONE messages to the next step
         for next_task in service_config.NEXT_TASK[worker_name]:
             send_done(channel=channel, worker=next_task, correlation_id=correlation_id)
 
         _mark_done_messages_as_sent(correlation_id=correlation_id)
-        _delete_stream(correlation_id=correlation_id)
+        _delete_stream(correlation_id=correlation_id, active_streams=active_streams)
+        if seen_messages:
+            del seen_messages[correlation_id]
+
+        print('sending DONE messages complete!')
         return True
 
     # still missing some DONE messages
@@ -441,14 +478,14 @@ def _mark_done_messages_as_sent(correlation_id:str):
 def mark_message_as_seen(seen_set:Dict[str, set], msg:bytes, correlation_id:str):
     m = hashlib.sha256()
     m.update(msg)
-    digest = m.digest().hex()
+    digest = m.digest()
     seen_set[correlation_id].add(digest)
 
 
 def was_msg_seen(seen_set:Dict[str, set], msg:bytes, correlation_id:str) -> bool:
     m = hashlib.sha256()
     m.update(msg)
-    digest = m.digest().hex()
+    digest = m.digest()
     if digest in seen_set[correlation_id]:
         print('duplicated message detected', correlation_id, digest, msg[:120])
         return True
@@ -508,16 +545,15 @@ def _load_stream(correlation_id:str) -> Generator[bytes, None, None]:
         id += 1
 
 
-def _delete_stream(correlation_id:str):
+def _delete_stream(correlation_id:str, active_streams:Set[str]):
     """Removes stream data from the worker storage. After this function executes
     successfully, the stream will no longer be considered by this worker."""
 
     print('[ DELETE ] start', correlation_id)
 
-    streams = _get_active_streams()
-    if correlation_id in streams:
-        streams.remove(correlation_id)
-        _store_active_streams(active_streams=streams)
+    if correlation_id in active_streams:
+        active_streams.remove(correlation_id)
+        _store_active_streams(active_streams=active_streams)
     
     # this should be the last operation because after this is done, the stream
     # will be effectively considered deleted by this worker

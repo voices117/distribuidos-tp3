@@ -76,7 +76,9 @@ MONITOR_SERVICE_TEMPLATE = """
           dockerfile: Dockerfile.monitor
         environment:
             WORKER_TASK: monitor
-            WORKER_ID: {number}  
+            WORKER_ID: {number}
+        depends_on:
+            - rabbitmq
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
           - ./monitor/src/config{number}.json:/config.json

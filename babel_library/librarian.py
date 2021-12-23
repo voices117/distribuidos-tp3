@@ -35,8 +35,8 @@ class Librarian:
         request = tryParse(body)
         req = self.parse(request)
 
-        killer.kill_if_applies("handling_request", read_count=self.read_counter)
-        killer.kill_if_applies("handling_request", write_count=self.write_counter)
+        killer.kill_if_applies("handling_read_request", read_counter=self.read_counter)
+        killer.kill_if_applies("handling_write_request", write_counter=self.write_counter)
 
         if req.source != WORKER_ID:
             res = req.execute(self)

@@ -79,14 +79,6 @@ LIBRARIANS=[
     {
         "id": 3,
         "name": "librarian_3"
-    },
-    {
-        "id": 4,
-        "name": "librarian_4"
-    },
-    {
-        "id": 5,
-        "name": "librarian_5"
     }
 ]
 

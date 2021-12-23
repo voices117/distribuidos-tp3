@@ -1,12 +1,12 @@
 {
     "handling_request": {
-        "stage": "handling_request",
+        "stage": "handling_read_request",
         "params": {
             "read_counter": 10
         }
     },
     "handling_request_1": {
-        "stage": "handling_request",
+        "stage": "handling_write_request",
         "params": {
             "write_counter": 10
         }

@@ -87,12 +87,12 @@ def create_docker_compose():
 
     #####################
     ##################### PIPELINES WORKERS
-    for worker_type, replicas in WORKERS.items():
-        if worker_type.startswith('client'):
-            continue
-
-        for i in range(replicas):
-            content += SERVICE_TEMPLATE.format(worker_type=worker_type, worker_id=i)
+    #for worker_type, replicas in WORKERS.items():
+    #    if worker_type.startswith('client'):
+    #        continue
+#
+    #    for i in range(replicas):
+    #        content += SERVICE_TEMPLATE.format(worker_type=worker_type, worker_id=i)
 
     #####################
     ##################### STORAGE NODES

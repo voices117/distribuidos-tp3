@@ -21,12 +21,12 @@ def get_system_nodes():
         name = librarian['name']
         systemNodes[name] = f'http://{name}:80'
 
-    for worker_type_name, replicas in WORKERS.items():
-        if worker_type_name in CONTAINER_EXCEPTIONS:
-            continue
-        for n in range(replicas):
-            name = f'{worker_type_name}_{n}'
-            systemNodes[name] = f'http://{name}:80'
+    #for worker_type_name, replicas in WORKERS.items():
+    #    if worker_type_name in CONTAINER_EXCEPTIONS:
+    #        continue
+    #    for n in range(replicas):
+    #        name = f'{worker_type_name}_{n}'
+    #        systemNodes[name] = f'http://{name}:80'
 
     return systemNodes
 

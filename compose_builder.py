@@ -74,7 +74,7 @@ MONITOR_SERVICE_TEMPLATE = """
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
           - ./monitor/src/config{number}.json:/config.json
-          - ./monitor/src/killer_conf:/app/killer_conf
+          - ./killer_conf:/app/killer_conf
 """
 
 def create_docker_compose():

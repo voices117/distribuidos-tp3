@@ -10,6 +10,7 @@ from bullyAlgorithm import Bully
 from services import killer
 
 OK = 0
+LOOP_PERIOD = 5
 
 class sauronEye:
     
@@ -47,9 +48,9 @@ class sauronEye:
                 # someone killed me or revived the leader
                 return
             try:
-                logging.info(f'getting {addr} status')
+                #logging.info(f'getting {addr} status')
                 response = requests.get(url=addr + '/status', timeout=self.timeout)
-                print(response)
+                #print(response)
                 if response.status_code != requests.codes.ok:
                     if self._bringBackToLife(container) == OK:
                         logging.info(f'node {container} has been restored')
@@ -69,7 +70,7 @@ class sauronEye:
                 killer.kill_if_applies(stage='after_5_rounds_being_leader', round=self.killerCount, id=str(self.Id))
                 self.loop()
                 self.killerCount += 1
-            time.sleep(6) 
+            time.sleep(LOOP_PERIOD) 
         logging.info('bye bye sauron')
 
 s = sauronEye()

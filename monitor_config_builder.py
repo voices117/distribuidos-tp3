@@ -1,5 +1,5 @@
 import json
-from service_config import LIBRARIANS, BULLY_TIMEOUT, NUMBER_OF_MONITOR_CONTAINERS, WORKERS
+from service_config import LIBRARIANS, BULLY_TIMEOUT, NUMBER_OF_MONITOR_CONTAINERS, WORKERS, CONTAINER_EXCEPTIONS
 
 def get_monitor_nodes():
 
@@ -22,6 +22,8 @@ def get_system_nodes():
         systemNodes[name] = f'http://{name}:80'
 
     for worker_type_name, replicas in WORKERS.items():
+        if worker_type_name in CONTAINER_EXCEPTIONS:
+            continue
         for n in range(replicas):
             name = f'{worker_type_name}_{n}'
             systemNodes[name] = f'http://{name}:80'

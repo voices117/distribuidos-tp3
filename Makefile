@@ -19,7 +19,7 @@ client:
 	                -e "WORKER_TASK=client" \
 	                -e "RABBITMQ_ADDRESS=rabbitmq" \
 					-v "$(shell pwd):/app" \
-					--network distribuidos-tp3_default \
+					--network $(shell basename $(CURDIR) | sed 's/-//')_default \
 					tp3-client client.py
 
 test-kill-joiner: clean

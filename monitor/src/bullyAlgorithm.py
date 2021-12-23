@@ -90,7 +90,7 @@ class Bully(Thread):
         higherId = -1
         for id, addr in self.Highers.items():
             try:
-                r = requests.post(url=addr+'/election', data={'id': ELECTION_SIGNAL})
+                r = requests.post(url=addr+'/election', data={'id': ELECTION_SIGNAL},timeout=self.timeout)
                 if r.status_code == requests.codes.ok:
                     higherId = id
             except:
@@ -110,6 +110,21 @@ class Bully(Thread):
             self.coordinatorId = UNKNOWN_LIDER_ID
         logging.info(f'[nodo: {self.Id}] Ending election')
 
+    def takeControl(self):
+        '''
+            return true if the calling node is the coordinator and acquire the lock
+            return false otherwise.
+            IMPORTANT: leaveControl must be called after using takeControl
+        '''
+        self.lock.acquire()
+        if self.coordinator:
+            return True
+        self.lock.release()
+        return False
+
+    def leaveControl(self):
+        self.lock.release()
+
     def amICoordinator(self):
         with self.lock:
             return self.coordinator
@@ -117,7 +132,7 @@ class Bully(Thread):
     def _postNewLider(self):
         for _, addr in self._getSmallers().items():
             try:
-                requests.post(url=addr+'/coordinator', json={'id': self.Id})
+                requests.post(url=addr+'/coordinator', json={'id': self.Id}, timeout=self.timeout)
             except:
                 logging.info(f'[nodo: {self.Id}] cant establish comunication with {addr}')
 

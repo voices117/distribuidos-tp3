@@ -44,7 +44,7 @@ class sauronEye:
     def loop(self):
         logging.info('Checking nodes status')
         for container, addr in self.Nodes.items():
-            if not self.running or not self.Bully.amICoordinator():
+            if not self.running or not self.Bully.takeControl():
                 # someone killed me or revived the leader
                 return
             try:
@@ -60,7 +60,8 @@ class sauronEye:
                 if self._bringBackToLife(container) == OK:
                     logging.info(f'node {container} has been restored')
                 else:
-                    logging.info(f'an error occurred trying to restore {container}')    
+                    logging.info(f'an error occurred trying to restore {container}')
+            self.Bully.leaveControl()
 
     def run(self):
         while self.running:
